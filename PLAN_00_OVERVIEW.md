@@ -112,12 +112,12 @@
 - pty는 채택하지 않는다(이식성). 자식 stdin/stdout은 파이프이며,
   tty 감지로 동작이 달라지는 도구의 한계는 PLAN_04에 문서화.
 
-### D9. 커널 패닉 캡처는 out-of-band (gcdslog, Phase 4)
+### D9. 커널 패닉 캡처는 out-of-band (gcdslog)
 - 드라이버 개발 중 커널이 죽으면 gcdsd도 함께 죽는다 — userland
   데몬으로 패닉 메시지를 받는 것은 원리적으로 불가능하다.
 - 정석대로 **시리얼 콘솔**을 보조 경로로 둔다: Linux 호스트에서
   원격 머신의 시리얼 출력을 수신·타임스탬프·기록하는 독립 도구
-  `gcdslog`를 Phase 4에 둔다. (대상 레트로 머신 대부분이 시리얼
+  `gcdslog`(tools/gcdslog.c). (대상 레트로 머신 대부분이 시리얼
   포트를 갖고 있어 현실적인 선택)
 - gcdsd는 "OS가 살아 있는 동안의 로그 수신"(D8)까지만 담당한다.
   역할 경계는 PLAN_04 §3.
@@ -197,7 +197,7 @@ GrandCrossDevServer/
     live_w32.c            Win32 감시 루프 (select + PeekNamedPipe 폴링)
   client/                 gcds
     main.c remote.c pathmap.c asyncjob.c ixmode.c toolias.c xfer.c
-  tools/                  보조 도구 (Phase 4)
+  tools/                  보조 도구 (Linux 호스트)
     gcdslog.c              시리얼 콘솔 수신기 (Linux 전용, 규칙 제약 없음)
   make/                   플랫폼별 Makefile (autotools 미사용)
     Makefile.posix Makefile.win32 Makefile.beos Makefile.next

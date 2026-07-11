@@ -72,6 +72,8 @@ Linux 호스트에서 이기종 원격 머신(Windows, macOS, BeOS, NeXTSTEP 등
 |------|------|-----------|
 | `gcdsd` | 명령 실행 데몬 | 원격 머신 (Windows/macOS/BeOS/NeXTSTEP/DOS/...) |
 | `gcds`  | 지시/수신 클라이언트 | Linux (호스트) |
+| `gnfsd` | 간이 NFSv2 서버 — 공유 스토리지(선택, nfsd/) | Linux (호스트) |
+| `gcdslog` | 시리얼 콘솔 커널 패닉 캡처(선택, tools/) | Linux (호스트) |
 
 ## 플랫폼 지원 현황
 

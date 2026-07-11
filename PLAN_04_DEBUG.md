@@ -49,7 +49,7 @@ userland 데몬도 함께 죽는다. 역할 경계를 명시한다:
   (§1의 로그 스트림/덤프 시나리오).
 - **gcdslog 담당**: OS가 죽는 순간의 메시지 — 시리얼 콘솔 경유.
 
-gcdslog 설계 개요:
+gcdslog 개요:
 - Linux 전용 독립 도구 (`tools/gcdslog.c`). 대상이 Linux뿐이므로
   C89/보수적 socket 규칙의 **적용 대상이 아니다** (termios 등 자유).
 - 동작: 지정 시리얼 포트(`/dev/ttyUSB0` 등, 속도 설정 포함)를 열어
