@@ -18,13 +18,20 @@ GCDSD_OBJ   = daemon/main.o daemon/session.o daemon/exec_psx.o \
 GCDS_OBJ    = client/main.o client/remote.o client/pathmap.o \
              client/asyncjob.o client/toolias.o client/ixmode.o client/xfer.o
 
-all: gcdsd gcds
+all: gcdsd gcds gcdslog
 
 gcdsd: $(COMMON_OBJ) $(GCDSD_OBJ)
 	$(CC) $(CFLAGS) -o gcdsd $(COMMON_OBJ) $(GCDSD_OBJ) $(LIBS)
 
 gcds: $(COMMON_OBJ) $(GCDS_OBJ)
 	$(CC) $(CFLAGS) -o gcds $(COMMON_OBJ) $(GCDS_OBJ) $(LIBS)
+
+# gcdslog: host-only serial console logger for kernel-panic capture
+# (PLAN_04 section 3, doc/panic-capture.md). The host is always Linux, so
+# this tool is NOT bound by the project's C89/portable-socket rules and
+# uses termios freely - built with its own flags, not $(CFLAGS).
+gcdslog: tools/gcdslog.c
+	$(CC) -D_GNU_SOURCE -Wall -O2 -o gcdslog tools/gcdslog.c
 
 .c.o:
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
@@ -37,4 +44,4 @@ HDRS = include/gcdsp.h common/util.h common/net.h common/ser.h \
 $(COMMON_OBJ) $(GCDSD_OBJ) $(GCDS_OBJ): $(HDRS)
 
 clean:
-	rm -f $(COMMON_OBJ) $(GCDSD_OBJ) $(GCDS_OBJ) gcdsd gcds
+	rm -f $(COMMON_OBJ) $(GCDSD_OBJ) $(GCDS_OBJ) gcdsd gcds gcdslog

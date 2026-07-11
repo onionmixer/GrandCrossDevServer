@@ -134,6 +134,8 @@ cp etc/gcds.cnf ~/.gcds.conf    # 호스트: 별칭/토큰 수정
 - [doc/next.md](doc/next.md) — NeXTSTEP/OPENSTEP 이식(gnext.h)·검증
 - [doc/toolchain.md](doc/toolchain.md) — win32/dos 크로스 툴체인
   (llvm-mingw / Open Watcom / Watt-32) 설치·사용
+- [doc/panic-capture.md](doc/panic-capture.md) — gcdslog 시리얼 콘솔
+  커널 패닉 캡처(대상OS별 설정, QEMU 검증)
 - [test/README.md](test/README.md) — 회귀 테스트 (`test/run.sh`)
 - [nfsd/README.md](nfsd/README.md) — 간이 NFSv2 서버(gnfsd, 공유
   스토리지 계층)

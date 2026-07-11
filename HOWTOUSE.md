@@ -168,6 +168,16 @@ gcds -i <host> <command...>
   폴백: `gcds host "gdb -batch -ex run -ex bt ./prog"` 또는
   `gcds host "debug < script.txt"`.
 
+### 커널 패닉 캡처 (gcdslog)
+커널이 죽으면 원격 gcdsd도 함께 죽으므로, 죽는 순간의 메시지는
+대상의 **시리얼 콘솔**에서 별도로 받아야 한다. `gcdslog`(호스트 도구)가
+시리얼 포트를 열어 콘솔 출력을 타임스탬프와 함께 로그한다:
+```sh
+./gcdslog -b 115200 -o panic.log /dev/ttyUSB0
+```
+대상은 콘솔을 시리얼로 보내도록 설정한다(Linux `console=ttyS0,115200`,
+Windows KD, 등). 상세·QEMU 검증은 [doc/panic-capture.md](doc/panic-capture.md).
+
 ## 8. 파일 전송 (PUT/GET)
 
 공유 파일시스템이 없는 원격지(대표적으로 DOS)에서 업로드→컴파일→

@@ -16,7 +16,7 @@
 
 | 플랫폼 | 바이너리 | 채널 | 빌드 출처(툴체인) | 수집 | 비고 |
 |--------|----------|------|-------------------|:----:|------|
-| linux  | gcds, gcdsd, gnfsd | TCP·시리얼 | 네이티브 gcc | ✅ | 호스트 클라이언트 + 로컬 데몬/NFS (ELF x86-64) |
+| linux  | gcds, gcdsd, gnfsd, gcdslog | TCP·시리얼 | 네이티브 gcc | ✅ | 호스트 클라이언트 + 로컬 데몬/NFS + 패닉 캡처 (ELF x86-64) |
 | next   | gcdsd (+next-mount.csh) | TCP·시리얼 | 네이티브 NeXT cc 2.7 | ✅ | OPENSTEP, Mach-O i486. sgtty 시리얼 |
 | macos  | gcdsd | TCP·시리얼 | 네이티브 clang | ✅ | Mach-O x86_64 (Darwin) |
 | haiku  | gcdsd | TCP·시리얼 | 네이티브 gcc 2.95.3 | ✅ | BeOS=Haiku, ELF i386 (hrev53755) |

@@ -41,13 +41,13 @@
   sub-second mtime, 권한 정규화. OPENSTEP 실기 mount 검증.
 - dist/ 배포 바이너리 6/6(복사→실행, git 추적) + win32/dos 크로스
   툴체인 편입(PLAN_06).
+- gcdslog: 시리얼 콘솔 커널 패닉 캡처 도구(tools/gcdslog.c, Linux 호스트
+  전용). QEMU Linux 게스트 실제 커널 패닉 캡처로 검증(doc/panic-capture.md).
 
 ## 잔여 작업
 - [ ] Windows MSVC 실기 빌드·검증(doc/win32.md, wine 통과로 저위험).
 - [ ] MS-DOS 실기(FOSSIL 상주) + 널모뎀 케이블 재확인.
 - [ ] gdb/lldb 실제 REPL·`dmesg -w` 실사용 버퍼링 실측(PLAN_04 §5).
-- [ ] **gcdslog** 시리얼 콘솔 수신기(커널 패닉 캡처, PLAN_04 §3) —
-      **최후 작업으로 유지**.
 - [ ] (선택) rexec 어댑터, `gcds --all` 병렬, 고전 Mac OS/OS2/AmigaOS
       시리얼 우선 이식, 시리얼 프레임 CRC 확장(capability `CRC`).
 
