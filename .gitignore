@@ -1,0 +1,53 @@
+# build objects
+*.o
+*.ow
+*.obj
+*.lib
+*.a
+*.map
+
+# binaries
+/gcds
+/gcdsd
+/gcds.exe
+/gcdsd.exe
+
+# local config (copy from etc/*.cnf)
+/gcdsd.conf
+/gcds.conf
+
+# runtime / scratch
+*.tmp
+*.log
+*.pid
+*.mrk
+core
+
+# editor
+*~
+*.swp
+.DS_Store
+
+# nfsd
+/nfsd/gnfsd
+nfsd/*.o
+/nfsd/serveNFS/
+
+# dist/ holds the redistributable per-platform daemon binaries and is
+# intentionally TRACKED (copy-and-go, PLAN_06). The root-anchored binary
+# rules above (/gcdsd, /gcds.exe, ...) don't reach into dist/, so the
+# binaries there commit normally. Only ignore scratch inside dist/.
+dist/**/*.tmp
+dist/**/*.log
+dist/**/core
+# private working copy of harvest.sh with real machine addresses
+# (dist/harvest.sh is the shareable placeholder template).
+dist/harvest_work.sh
+
+# toolchain/ holds the large win32/dos cross toolchains (~1.3GB:
+# llvm-mingw, Open Watcom, Watt-32) + their archives. NOT tracked -
+# reproducible via toolchain/setup.sh. Track only the scripts.
+# See doc/toolchain.md.
+/toolchain/*
+!/toolchain/env.sh
+!/toolchain/setup.sh

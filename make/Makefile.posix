@@ -1,0 +1,40 @@
+# Makefile.posix - Linux / macOS / modern Unix build
+# run from the project root:  make -f make/Makefile.posix
+
+CC       = gcc
+CPPFLAGS = -Iinclude -Icommon -D_POSIX_C_SOURCE=200112L \
+           -DGCDS_HAS_LIVE -DGCDS_HAS_IX
+CFLAGS   = -ansi -pedantic -Wall -O2
+# link libs: empty on Linux/macOS (sockets in libc); override for
+# systems where the socket API is a separate library, e.g.
+#   make -f make/Makefile.posix LIBS=-lnetwork   (Haiku)
+#   make -f make/Makefile.posix LIBS=-lnet        (BeOS R5)
+LIBS     =
+
+COMMON_OBJ = common/util.o common/net.o common/ser_psx.o \
+             common/chan.o common/lineio.o common/conf.o common/acl.o
+GCDSD_OBJ   = daemon/main.o daemon/session.o daemon/exec_psx.o \
+             daemon/live.o
+GCDS_OBJ    = client/main.o client/remote.o client/pathmap.o \
+             client/asyncjob.o client/toolias.o client/ixmode.o client/xfer.o
+
+all: gcdsd gcds
+
+gcdsd: $(COMMON_OBJ) $(GCDSD_OBJ)
+	$(CC) $(CFLAGS) -o gcdsd $(COMMON_OBJ) $(GCDSD_OBJ) $(LIBS)
+
+gcds: $(COMMON_OBJ) $(GCDS_OBJ)
+	$(CC) $(CFLAGS) -o gcds $(COMMON_OBJ) $(GCDS_OBJ) $(LIBS)
+
+.c.o:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+# header dependencies (coarse but safe: any header change
+# rebuilds everything; the codebase is small)
+HDRS = include/gcdsp.h common/util.h common/net.h common/ser.h \
+       common/chan.h common/lineio.h common/conf.h common/acl.h \
+       daemon/exec.h daemon/session.h daemon/live.h client/remote.h common/acl.h
+$(COMMON_OBJ) $(GCDSD_OBJ) $(GCDS_OBJ): $(HDRS)
+
+clean:
+	rm -f $(COMMON_OBJ) $(GCDSD_OBJ) $(GCDS_OBJ) gcdsd gcds

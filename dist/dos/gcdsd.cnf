@@ -1,0 +1,25 @@
+# gcdsd.cnf - sample daemon config (copy to gcdsd.conf and edit)
+
+# TCP port (default 9910)
+port = 9910
+
+# shared secret; required. internal network only (README premise 5)
+token = changeme
+
+# where run capture temp files live (default /tmp)
+tmpdir = /tmp
+
+# advertise ASYNC capability (1 = clients use RUNA/RESULT flow).
+# mandatory on single-tasking platforms (DOS); useful for testing.
+async = 1
+
+# serial mode instead of TCP: device:baud (PLAN_01 1.1)
+#serial = /dev/ttyS0:9600
+
+# TCP peer allow-list (space/comma separated, exact IP or CIDR).
+# empty/absent = allow all. TCP mode only. (PLAN_00 D4)
+#allow = 192.168.1.0/24 10.0.0.5
+
+# per-job output cap in bytes (stdout+stderr). 0 = unlimited.
+# guards against a runaway command filling the disk / the wire.
+#maxout = 16777216

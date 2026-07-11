@@ -1,0 +1,35 @@
+# Makefile.next - NeXTSTEP / OPENSTEP daemon build (cc, gcc 2.7).
+#   make -f make/Makefile.next          # builds ./gcdsd
+#
+# NeXTSTEP is 4.3BSD-based: no sys/select.h, union-wait W* macros,
+# missing POSIX types, waitpid/setpgid spelled wait4/setpgrp. The
+# gnext.h shim (under -DGCDS_NEXT) covers all of those.
+#
+# This build now includes GCDS_HAS_LIVE/GCDS_HAS_IX (live.c):
+# streaming RUN, LIVE control sessions, RUNI. select() is native
+# 4.2BSD so sockets+pipes are watchable together - real-machine
+# verification decides whether INTERACTIVE stays (PLAN_02 4).
+# Serial uses the sgtty backend (ser_next.c): NeXTSTEP has the
+# termios header but not the functions (doc/next.md).
+#
+# Only the daemon (gcdsd) is built here; the client (gcds) runs on
+# the Linux host. Not run through -ansi -pedantic: the NeXTSTEP
+# system headers are not strict-C89-clean.
+
+CC       = cc
+CPPFLAGS = -Iinclude -Icommon -DGCDS_NEXT -DGCDS_HAS_LIVE -DGCDS_HAS_IX
+CFLAGS   = -O
+
+COMMON_OBJ = common/util.o common/net.o common/ser_next.o \
+             common/chan.o common/lineio.o common/conf.o common/acl.o
+GCDSD_OBJ  = daemon/main.o daemon/session.o daemon/exec_psx.o \
+             daemon/live.o
+
+gcdsd: $(COMMON_OBJ) $(GCDSD_OBJ)
+	$(CC) $(CFLAGS) -o gcdsd $(COMMON_OBJ) $(GCDSD_OBJ)
+
+.c.o:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(COMMON_OBJ) $(GCDSD_OBJ) gcdsd

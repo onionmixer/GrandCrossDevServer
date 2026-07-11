@@ -1,0 +1,55 @@
+# Makefile.dtcp - 16-bit MS-DOS daemon over TCP/IP (Watt-32).
+# Cross-built on Linux with Open Watcom v2 + a prebuilt Watt-32
+# large-model library (PLAN_02 4, doc/dos.md):
+#   make -f make/Makefile.dtcp WATCOM=/path/to/ow WATT=/path/to/watt32
+#
+# vs the serial build (Makefile.dos): links wattcpwl.lib and uses
+# common/net.c (Watt-32 path) instead of net_null.c. Still single-
+# tasking → async model, no LIVE/IX. Needs a packet driver + a
+# WATTCP.CFG (my_ip/netmask/gateway) on the target.
+
+WATCOM ?= $(HOME)/ow
+WATT   ?= $(HOME)/watt32
+export WATCOM
+export PATH := $(WATCOM)/binl64:$(PATH)
+export INCLUDE := $(WATCOM)/h
+
+# -DWATT32_STATIC: match how the Watt-32 static lib was built so
+# the socket calls resolve to its symbols (not DLL-import stubs).
+WFLAGS = -zq -bt=dos -ml -0 -os -w2 \
+         -dGCDS_DOS -dWATT32_STATIC \
+         -i=include -i=common -i=daemon -i=$(WATT)/inc
+
+OBJS = util.o net.o ser_dos.o chan.o lineio.o conf.o acl.o \
+       main.o session.o exec_dos.o
+
+gcdsd.exe: $(OBJS)
+	wlink SYSTEM dos option quiet,stack=16k \
+	  name gcdsd.exe \
+	  file {util.o net.o ser_dos.o chan.o lineio.o conf.o acl.o main.o session.o exec_dos.o} \
+	  library $(WATT)/lib/wattcpwl.lib
+	rm -f $(OBJS)
+
+util.o: common/util.c
+	wcc $(WFLAGS) common/util.c -fo=util.o
+net.o: common/net.c
+	wcc $(WFLAGS) common/net.c -fo=net.o
+ser_dos.o: common/ser_dos.c
+	wcc $(WFLAGS) common/ser_dos.c -fo=ser_dos.o
+chan.o: common/chan.c
+	wcc $(WFLAGS) common/chan.c -fo=chan.o
+lineio.o: common/lineio.c
+	wcc $(WFLAGS) common/lineio.c -fo=lineio.o
+conf.o: common/conf.c
+	wcc $(WFLAGS) common/conf.c -fo=conf.o
+acl.o: common/acl.c
+	wcc $(WFLAGS) common/acl.c -fo=acl.o
+main.o: daemon/main.c
+	wcc $(WFLAGS) daemon/main.c -fo=main.o
+session.o: daemon/session.c
+	wcc $(WFLAGS) daemon/session.c -fo=session.o
+exec_dos.o: daemon/exec_dos.c
+	wcc $(WFLAGS) daemon/exec_dos.c -fo=exec_dos.o
+
+clean:
+	rm -f $(OBJS) gcdsd.exe

@@ -1,0 +1,41 @@
+# Makefile.win32 - MSVC / nmake build (daemon only; the gcds
+# client is Linux-side). run from the project root:
+#   nmake /f make\Makefile.win32
+#
+# works with MSVC 6.0 and later. objects land in the root dir.
+
+CC     = cl
+CFLAGS = /nologo /W3 /O1 /Iinclude /Icommon /Idaemon /DGCDS_WIN32 \
+         /DGCDS_HAS_LIVE /DGCDS_HAS_IX
+
+OBJS = util.obj net.obj ser_w32.obj chan.obj lineio.obj conf.obj acl.obj \
+       main.obj session.obj exec_w32.obj live_w32.obj
+
+gcdsd.exe: $(OBJS)
+	$(CC) /nologo /Fegcdsd.exe $(OBJS) wsock32.lib
+
+util.obj: common\util.c
+	$(CC) $(CFLAGS) /c common\util.c
+net.obj: common\net.c
+	$(CC) $(CFLAGS) /c common\net.c
+ser_w32.obj: common\ser_w32.c
+	$(CC) $(CFLAGS) /c common\ser_w32.c
+chan.obj: common\chan.c
+	$(CC) $(CFLAGS) /c common\chan.c
+lineio.obj: common\lineio.c
+	$(CC) $(CFLAGS) /c common\lineio.c
+conf.obj: common\conf.c
+	$(CC) $(CFLAGS) /c common\conf.c
+acl.obj: common\acl.c
+	$(CC) $(CFLAGS) /c common\acl.c
+main.obj: daemon\main.c
+	$(CC) $(CFLAGS) /c daemon\main.c
+session.obj: daemon\session.c
+	$(CC) $(CFLAGS) /c daemon\session.c
+exec_w32.obj: daemon\exec_w32.c
+	$(CC) $(CFLAGS) /c daemon\exec_w32.c
+live_w32.obj: daemon\live_w32.c
+	$(CC) $(CFLAGS) /c daemon\live_w32.c
+
+clean:
+	del $(OBJS) gcdsd.exe

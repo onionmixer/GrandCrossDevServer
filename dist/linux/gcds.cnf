@@ -1,0 +1,22 @@
+# gcds.cnf - sample client config
+# search order: $GCDS_CONF, ./gcds.conf, ~/.gcds.conf
+
+# a TCP host
+host.win.addr  = 192.168.0.20
+host.win.port  = 9910
+host.win.token = changeme
+# path mapping: local-prefix|remote-prefix[|sep]  (PLAN_05 2)
+# - component-boundary match, longest local prefix wins
+# - separator: explicit 3rd field, else '\' if remote contains one
+# - use a mounted drive letter, NOT an UNC path (PLAN_05 3)
+host.win.map.1 = /mnt/proj|Z:\proj
+# classic Mac style (Phase 4): host.mac.map.1 = /mnt/mac|MacHD:proj|:
+
+# a serial host (no network on the remote - PLAN_00 D10)
+host.dosbox.serial = /dev/ttyUSB0:9600
+host.dosbox.token  = changeme
+
+# local loopback for testing
+host.local.addr  = 127.0.0.1
+host.local.port  = 9910
+host.local.token = changeme

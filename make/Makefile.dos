@@ -1,0 +1,30 @@
+# Makefile.dos - 16-bit MS-DOS daemon, cross-built on Linux with
+# Open Watcom v2 (Linux-hosted binaries; no sudo install needed):
+#   make -f make/Makefile.dos WATCOM=/path/to/ow-snapshot
+#
+# serial-only build: no Watt-32, net_null.c stub (PLAN_02 4).
+# large memory model, 8086 target. The Watt-32 TCP build is a
+# separate later target.
+#
+# (the original plan said wmake for DOS-native builds; this file
+# is the Linux-hosted cross variant used for development)
+
+WATCOM ?= $(HOME)/ow
+export WATCOM
+export PATH := $(WATCOM)/binl64:$(PATH)
+export INCLUDE := $(WATCOM)/h
+
+WFLAGS = -zq -bcl=dos -ml -0 -os -w=3 \
+         -dGCDS_DOS -dGCDS_NO_NET \
+         -i=include -i=common -i=daemon
+
+SRCS = common/util.c common/ser_dos.c common/net_null.c \
+       common/chan.c common/lineio.c common/conf.c common/acl.c \
+       daemon/main.c daemon/session.c daemon/exec_dos.c
+
+gcdsd.exe: $(SRCS)
+	wcl $(WFLAGS) -fe=gcdsd.exe $(SRCS)
+	rm -f *.o
+
+clean:
+	rm -f gcdsd.exe *.o
