@@ -52,3 +52,6 @@ dist/harvest_work.sh
 /toolchain/*
 !/toolchain/env.sh
 !/toolchain/setup.sh
+
+# 개인 메모(세션 재개 명령 등)
+/a.txt
