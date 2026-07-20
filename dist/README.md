@@ -18,18 +18,13 @@
 |--------|----------|------|-------------------|:----:|------|
 | linux  | gcds, gcdsd, gnfsd, gcdslog | TCP·시리얼 | 네이티브 gcc | ✅ | 호스트 클라이언트 + 로컬 데몬/NFS + 패닉 캡처 (ELF x86-64) |
 | next   | gcdsd (+next-mount.csh) | TCP·시리얼 | 네이티브 NeXT cc 2.7 | ✅ | OPENSTEP, Mach-O i486. sgtty 시리얼 |
-| macos  | gcdsd | TCP·시리얼 | 네이티브 clang | ✅ | Mach-O x86_64 (Darwin) |
+| macos  | gcdsd | TCP·시리얼 | 네이티브 clang | ✅ | Mach-O x86_64. 한글 NFD→NFC 실기 확인 |
 | haiku  | gcdsd | TCP·시리얼 | 네이티브 gcc 2.95.3 | ✅ | BeOS=Haiku, ELF i386 (hrev53755) |
 | win32  | gcdsd.exe | TCP·COM | 크로스 llvm-mingw(i686) | ✅ | PE32 i386. wine 기동 확인(LIVE INTERACTIVE) |
 | dos    | gcdsd-serial.exe, gcdsd-tcp.exe | 시리얼 / TCP | 크로스 Open Watcom 16bit | ✅ | 비동기(ASYNC). serial=FOSSIL, tcp=Watt-32 |
 
-✅ 6/6 수집 완료 — `.cnf` 우선 설정 탐색이 반영돼 있다(개명 없이
-`gcdsd.cnf` 그대로 동작).
-
-> **macOS만 재수집 대기**: `dist/macos/gcdsd`는 텍스트 인코딩 정규화
-> (textcv, UTF-8/NFC) **이전** 빌드다. 해당 머신에서
-> `./dist/harvest.sh macos`로 갱신하면 한글 NFD→NFC 조합이 적용된다.
-> 나머지 5종은 최신.
+✅ 6/6 수집 완료 — 전부 현재 소스 기준이며 `.cnf` 우선 설정 탐색과
+텍스트 인코딩 정규화(UTF-8/NFC)가 반영돼 있다.
 
 ### win32/dos 크로스툴체인
 win32/dos는 Linux 호스트에서 크로스컴파일한다(wine/DOSBox는 실행
