@@ -27,7 +27,7 @@
 
 **플랫폼 이식·검증** (상세 doc/\*.md, 상태표 README)
 - macOS: 실기(clang), 전 기능 통과.
-- Windows: wine 엔드투엔드 전 기능 통과(TCP+COM). MSVC 실기만 잔여.
+- Windows: wine 엔드투엔드 전 기능 통과(TCP+COM), MSVC 실기 빌드·검증 완료.
 - BeOS/Haiku: 실기(gcc 2.95), 전 기능 통과. BeOS=Haiku 동일 취급.
 - MS-DOS 시리얼: DOSBox-X 검증(Open Watcom 크로스, FOSSIL/int14, 비동기).
 - MS-DOS TCP: DOSBox-X 검증(Watt-32 16bit large model, 패킷드라이버).
@@ -45,7 +45,6 @@
   전용). QEMU Linux 게스트 실제 커널 패닉 캡처로 검증(doc/panic-capture.md).
 
 ## 잔여 작업
-- [ ] Windows MSVC 실기 빌드·검증(doc/win32.md, wine 통과로 저위험).
 - [ ] MS-DOS 실기(FOSSIL 상주) + 널모뎀 케이블 재확인.
 - [ ] gdb/lldb 실제 REPL·`dmesg -w` 실사용 버퍼링 실측(PLAN_04 §5).
 - [ ] (선택) rexec 어댑터, `gcds --all` 병렬, 고전 Mac OS/OS2/AmigaOS

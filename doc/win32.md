@@ -68,8 +68,7 @@ CreateJobObject/AssignProcessToJobObject/TerminateJobObject는
 CreateProcess는 CREATE_SUSPENDED로 만들어 job 할당 후 ResumeThread
 (손자 생성 전 할당, 레이스 방지).
 
-## 남은 작업 (MSVC 실기)
+## MSVC 실기 빌드
 
-전 기능은 wine(llvm-mingw 빌드)에서 검증됐다. 남은 것은 **MSVC 실기
-빌드**뿐: `nmake` 빌드(/W3 경고 확인)와, wine cmd의 `set FOO` 나열
-오동작이 실기에서 재현되지 않는지 확인.
+`nmake /f make/Makefile.win32`로 **MSVC 실기 빌드·검증 완료**.
+llvm-mingw 크로스 빌드본은 wine에서 전 기능이 검증됐다(위 절).

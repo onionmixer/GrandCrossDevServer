@@ -81,14 +81,15 @@ Linux 호스트에서 이기종 원격 머신(Windows, macOS, BeOS, NeXTSTEP 등
 |--------|------|------|------|------|
 | Linux/POSIX | Makefile.posix | ✅ 루프백 | TCP·시리얼 | 기준 플랫폼, LIVE·RUNI |
 | macOS | Makefile.posix | ✅ 실기(SSH) | TCP·시리얼 | clang, sshfs 워크플로 |
-| Windows | Makefile.win32(nmake)/mgw | ✅ wine | TCP·COM | Winsock 1.1, Job Object |
+| Windows | Makefile.win32(nmake)/mgw | ✅ 실기(MSVC)·wine | TCP·COM | Winsock 1.1, Job Object |
 | MS-DOS(시리얼) | Makefile.dos | ✅ DOSBox-X | 시리얼 | FOSSIL/int14, 비동기 |
 | MS-DOS(TCP) | Makefile.dtcp | ✅ DOSBox-X | TCP | Watt-32, 패킷 드라이버 |
 | BeOS/Haiku | Makefile.posix `LIBS=-lnetwork` | ✅ 실기(Haiku, SSH) | TCP·시리얼 | gcc 2.95, BeOS 세대 |
 | NeXTSTEP/OPENSTEP | Makefile.next | ✅ 실기(OPENSTEP, telnet) | TCP·시리얼 | NeXT cc 2.7, LIVE·RUNI·sgtty |
 
-- Windows/macOS/DOS는 실기가 아닌 에뮬레이션(wine/DOSBox-X) 또는
-  단일 실기(mac) 검증. 각 플랫폼 상세는 `doc/*.md`.
+- macOS·Haiku·NeXTSTEP·Windows는 실기 검증. **MS-DOS만 에뮬레이션
+  (DOSBox-X) 검증**이며 실기(FOSSIL 상주 + 널모뎀)는 잔여 작업이다.
+  각 플랫폼 상세는 `doc/*.md`.
 
 ## 시작하기
 
