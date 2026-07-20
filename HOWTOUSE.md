@@ -104,6 +104,10 @@ async  = 0                    # 1이면 ASYNC 광고(DOS 필수)
 #serial = /dev/ttyS0:9600     # 있으면 TCP 대신 시리얼 모드
 #allow  = 192.168.1.0/24 10.0.0.5   # TCP 접속 허용 IP/CIDR(비면 전체 허용)
 #maxout = 16777216            # 작업당 출력 상한(byte, 0=무제한)
+#codepage = auto             # (Windows) 로컬 코드페이지 처리:
+                              #  auto=자동감지(기본) | off=변환안함
+                              #  | 949 등 명시. 출력은 UTF-8로 변환돼
+                              #  전송되고, 수신 명령행은 역변환된다.
 ```
 실행: `gcdsd` — 같은 폴더에서 `gcdsd.cnf` → `gcdsd.conf` 순으로 자동
 탐색한다(MS-DOS는 8.3이라 `.cnf`만). 다른 경로면 `gcdsd -c <파일>`.

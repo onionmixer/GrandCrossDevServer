@@ -25,6 +25,7 @@
 #include "util.h"
 #include "lineio.h"
 #include "session.h"
+#include "textcv.h"
 #include "live.h"
 
 #define WCMD_MAX (16384L)
@@ -127,6 +128,35 @@ static int sock_wait(gcds_sock_t ls, gcds_chan_t *sess, int *ls_rd,
     return 1;
 }
 
+#ifdef GCDS_TEXTCV
+/* per-stream hold-back state: a multi-byte char split across two pipe
+   reads must not be converted in halves (textcv.h) */
+static txt_stream_t g_cv_out, g_cv_err;
+static char g_cvbuf_w[GCDSP_FRAME_MAX * 2];
+
+static void cv_reset(void)
+{
+    txt_stream_init(&g_cv_out);
+    txt_stream_init(&g_cv_err);
+}
+
+/* emit whatever each stream still holds; 0 ok, -1 session write error */
+static int cv_flush_all(gcds_chan_t *sess)
+{
+    int i;
+    if (sess == NULL || !txt_active())
+        return 0;
+    for (i = 0; i < 2; i++) {
+        txt_stream_t *cv = i ? &g_cv_err : &g_cv_out;
+        char tag = i ? 'E' : 'O';
+        long cn = txt_flush(cv, g_cvbuf_w, (long)sizeof(g_cvbuf_w));
+        if (cn > 0 && lio_put_frame(sess, tag, g_cvbuf_w, cn) != LIO_OK)
+            return -1;
+    }
+    return 0;
+}
+#endif
+
 /* poll one child pipe; stream available bytes as a frame.
    returns 0 open, 1 EOF/broken, -1 session write error */
 static int pump(gcds_chan_t *sess, char tag, HANDLE h, long chunk,
@@ -150,6 +180,18 @@ static int pump(gcds_chan_t *sess, char tag, HANDLE h, long chunk,
         return 0;
     *total += (long)got;
     if (sess != NULL) {
+#ifdef GCDS_TEXTCV
+        if (txt_active()) {           /* local encoding -> wire (UTF-8) */
+            txt_stream_t *cv = (tag == 'O') ? &g_cv_out : &g_cv_err;
+            long cn = txt_out(cv, buf, (long)got, g_cvbuf_w,
+                              (long)sizeof(g_cvbuf_w));
+            if (cn < 0)
+                return -1;
+            if (cn > 0 && lio_put_frame(sess, tag, g_cvbuf_w, cn) != LIO_OK)
+                return -1;
+            return 0;
+        }
+#endif
         if (lio_put_frame(sess, tag, buf, (long)got) != LIO_OK)
             return -1;
     }
@@ -299,6 +341,9 @@ int live_exec(int mode, gcds_chan_t *sess, gcds_sock_t ls,
 
     out_done = (mode == LIVE_JOB);
     err_done = (mode == LIVE_JOB);
+#ifdef GCDS_TEXTCV
+    cv_reset();
+#endif
     killed = 0;
     lost = 0;
     chunk = (sess != NULL) ? chan_chunk(sess) : 0;
@@ -391,6 +436,10 @@ int live_exec(int mode, gcds_chan_t *sess, gcds_sock_t ls,
             break;
     }
 
+#ifdef GCDS_TEXTCV
+    if (cv_flush_all(sess) < 0)      /* emit held-back tails */
+        lost = 1;
+#endif
     WaitForSingleObject(pi.hProcess, INFINITE);
     code = 0;
     GetExitCodeProcess(pi.hProcess, &code);

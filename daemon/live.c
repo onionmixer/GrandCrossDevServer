@@ -26,6 +26,7 @@
 #include "util.h"
 #include "lineio.h"
 #include "session.h"
+#include "textcv.h"
 #include "live.h"
 
 #define SCRIPT_MAX (32768L)
@@ -63,6 +64,35 @@ static void hardkill_child(pid_t pid)
 
 /* drain one child pipe into a tagged frame; returns 0 open,
    1 EOF, -1 session write error. adds bytes read to *total. */
+#ifdef GCDS_TEXTCV
+/* per-stream hold-back: a multi-byte char split across two reads must
+   not be converted in halves (textcv.h) */
+static txt_stream_t g_cv_out, g_cv_err;
+static char g_cvbuf_p[GCDSP_FRAME_MAX * 2];
+
+static void cv_reset(void)
+{
+    txt_stream_init(&g_cv_out);
+    txt_stream_init(&g_cv_err);
+}
+
+/* emit whatever each stream still holds; 0 ok, -1 session write error */
+static int cv_flush_all(gcds_chan_t *sess)
+{
+    int i;
+    if (sess == NULL || !txt_active())
+        return 0;
+    for (i = 0; i < 2; i++) {
+        txt_stream_t *cv = i ? &g_cv_err : &g_cv_out;
+        char tag = i ? 'E' : 'O';
+        long cn = txt_flush(cv, g_cvbuf_p, (long)sizeof(g_cvbuf_p));
+        if (cn > 0 && lio_put_frame(sess, tag, g_cvbuf_p, cn) != LIO_OK)
+            return -1;
+    }
+    return 0;
+}
+#endif
+
 static int pump(gcds_chan_t *sess, char tag, int fd, long chunk,
                 long *total)
 {
@@ -74,6 +104,18 @@ static int pump(gcds_chan_t *sess, char tag, int fd, long chunk,
         return 1;
     *total += n;
     if (sess != NULL) {
+#ifdef GCDS_TEXTCV
+        if (txt_active()) {           /* local encoding -> wire (UTF-8) */
+            txt_stream_t *cv = (tag == 'O') ? &g_cv_out : &g_cv_err;
+            long cn = txt_out(cv, buf, n, g_cvbuf_p,
+                              (long)sizeof(g_cvbuf_p));
+            if (cn < 0)
+                return -1;
+            if (cn > 0 && lio_put_frame(sess, tag, g_cvbuf_p, cn) != LIO_OK)
+                return -1;
+            return 0;
+        }
+#endif
         if (lio_put_frame(sess, tag, buf, n) != LIO_OK)
             return -1;
     }
@@ -213,6 +255,9 @@ int live_exec(int mode, gcds_chan_t *sess, gcds_sock_t ls,
     status = 0;
     chunk = (sess != NULL) ? chan_chunk(sess) : 0;
 
+#ifdef GCDS_TEXTCV
+    cv_reset();
+#endif
     for (;;) {
         fd_set rd;
         struct timeval tv;
@@ -355,6 +400,9 @@ int live_exec(int mode, gcds_chan_t *sess, gcds_sock_t ls,
         }
     }
 
+#ifdef GCDS_TEXTCV
+    cv_flush_all(sess);              /* emit held-back tails */
+#endif
     if (inp[1] >= 0)
         close(inp[1]);
 

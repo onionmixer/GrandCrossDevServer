@@ -22,6 +22,7 @@
 #include "gcdsp.h"
 #include "util.h"
 #include "acl.h"
+#include "textcv.h"
 #include "lineio.h"
 #include "session.h"
 #include "live.h"
@@ -44,6 +45,12 @@ static char g_ref[PATHBUF];
    the daemon is single-threaded and these never nest, so sharing it
    keeps the DOS large-model DGROUP within 64K (PLAN_02 4). */
 static char g_fbuf[GCDSP_FRAME_MAX];
+
+#ifdef GCDS_TEXTCV
+/* conversion scratch: local->wire can grow the text (a 2-byte DBCS
+   char becomes 3 UTF-8 bytes), so this is sized with headroom. */
+static char g_cvbuf[GCDSP_FRAME_MAX * 2];
+#endif
 
 /* Separator used when joining tmpdir with our temp file names.
    Windows and MS-DOS use '\' natively, and on DOS '/' is the command
@@ -139,6 +146,9 @@ static long next_jobid(void)
 static int send_file(gcds_chan_t *c, char tag, const char *path,
                      long *sent)
 {
+#ifdef GCDS_TEXTCV
+    txt_stream_t cv;
+#endif
     FILE *fp;
     long chunk;
     long n;
@@ -149,10 +159,24 @@ static int send_file(gcds_chan_t *c, char tag, const char *path,
         return 0;
     cap = g_maxout;
     chunk = chan_chunk(c);
+#ifdef GCDS_TEXTCV
+    txt_stream_init(&cv);
+#endif
     for (;;) {
         n = (long)fread(g_fbuf, 1, (size_t)chunk, fp);
         if (n <= 0)
             break;
+#ifdef GCDS_TEXTCV
+        /* text frames carry the wire encoding (textcv.h); D frames are
+           raw and never come through here */
+        if (txt_active()) {
+            long cn = txt_out(&cv, g_fbuf, n, g_cvbuf, (long)sizeof(g_cvbuf));
+            if (cn < 0) { fclose(fp); return -1; }
+            if (cn == 0) continue;          /* all held for next chunk */
+            memcpy(g_fbuf, g_cvbuf, (size_t)cn);
+            n = cn;
+        }
+#endif
         if (cap > 0 && *sent + n > cap) {
             n = cap - *sent;        /* send only up to the cap */
             if (n > 0 && lio_put_frame(c, tag, g_fbuf, n) != LIO_OK) {
@@ -171,6 +195,16 @@ static int send_file(gcds_chan_t *c, char tag, const char *path,
         }
         *sent += n;
     }
+#ifdef GCDS_TEXTCV
+    if (txt_active()) {                     /* emit any held-back tail */
+        long cn = txt_flush(&cv, g_cvbuf, (long)sizeof(g_cvbuf));
+        if (cn > 0 && lio_put_frame(c, tag, g_cvbuf, cn) != LIO_OK) {
+            fclose(fp);
+            return -1;
+        }
+        *sent += cn;
+    }
+#endif
     fclose(fp);
     return 0;
 }
@@ -321,6 +355,11 @@ static int put_greeting(gcds_chan_t *c)
         gcds_strlcat(greet, " LIVE", GCDSP_LINE_MAX);
     if (g_ix)
         gcds_strlcat(greet, " INTERACTIVE", GCDSP_LINE_MAX);
+#if TXT_WIRE_UTF8
+    /* text frames are guaranteed UTF-8 (converted if the local
+       encoding differs). DOS/NeXTSTEP only assume ASCII and omit it. */
+    gcds_strlcat(greet, " UTF8", GCDSP_LINE_MAX);
+#endif
     return lio_put_line(c, greet);
 }
 
@@ -415,6 +454,18 @@ void session_run(gcds_chan_t *c, gcds_job_t *job, gcds_res_t *res,
         }
         if (r != LIO_OK)
             return;
+#ifdef GCDS_TEXTCV
+        /* command line, CWD and ENV values arrive in the wire encoding;
+           the local shell/filesystem wants the local one */
+        if (txt_active()) {
+            long cn = txt_in(line, (long)strlen(line), g_cvbuf,
+                             (long)sizeof(g_cvbuf));
+            if (cn > 0 && cn < GCDSP_LINE_MAX) {
+                memcpy(line, g_cvbuf, (size_t)cn);
+                line[cn] = '\0';
+            }
+        }
+#endif
 
         arg = strchr(line, ' ');
         if (arg != NULL) {

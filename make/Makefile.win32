@@ -9,6 +9,7 @@ CFLAGS = /nologo /W3 /O1 /Iinclude /Icommon /Idaemon /DGCDS_WIN32 \
          /DGCDS_HAS_LIVE /DGCDS_HAS_IX
 
 OBJS = util.obj net.obj ser_w32.obj chan.obj lineio.obj conf.obj acl.obj \
+       textcv.obj \
        main.obj session.obj exec_w32.obj live_w32.obj
 
 gcdsd.exe: $(OBJS)
@@ -26,6 +27,9 @@ lineio.obj: common\lineio.c
 	$(CC) $(CFLAGS) /c common\lineio.c
 conf.obj: common\conf.c
 	$(CC) $(CFLAGS) /c common\conf.c
+textcv.obj: common\textcv.c
+	$(CC) $(CFLAGS) /c common\textcv.c
+
 acl.obj: common\acl.c
 	$(CC) $(CFLAGS) /c common\acl.c
 main.obj: daemon\main.c

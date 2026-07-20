@@ -94,6 +94,10 @@ GCDS <proto-ver> <os-tag> <hostname> [<cap> ...]
   - `INTERACTIVE` — 이 데몬은 대화형 실행(RUNI, §5.1)을 지원한다.
     소켓/자식 출력의 동시 감시가 가능한 플랫폼만 표기한다
     (POSIX/Win32/Haiku/NeXTSTEP. 고전 BeOS R5·DOS는 불가 — PLAN_02 §4).
+  - `UTF8` — **텍스트가 UTF-8임을 보장**한다(로컬 인코딩이 다르면
+    데몬이 변환). 텍스트란 O/E 프레임, 명령행, CWD/ENV 값, I 프레임을
+    말하며 **D 프레임(PUT/GET)은 규약 밖의 raw 바이트**다. ASCII만
+    가정하는 DOS/NeXTSTEP은 표기하지 않는다 (PLAN_02 §1.1).
   - `LIVE` — 작업 실행 중에도 제어 세션(§4.1)을 수락한다.
     멀티태스킹 OS(POSIX/Win32/BeOS·Haiku/NeXTSTEP)의 데몬이 표기.
     단일 태스킹(DOS)은 불가.

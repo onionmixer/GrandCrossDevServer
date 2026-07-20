@@ -12,7 +12,7 @@ CPPFLAGS = -Iinclude -Icommon -Idaemon -DGCDS_WIN32 \
 CFLAGS   = -Wall -O2
 
 COMMON_OBJ = common/util.ow common/net.ow common/ser_w32.ow \
-             common/chan.ow common/lineio.ow common/conf.ow common/acl.ow
+             common/chan.ow common/lineio.ow common/textcv.ow common/conf.ow common/acl.ow
 GCDSD_OBJ   = daemon/main.ow daemon/session.ow daemon/exec_w32.ow \
              daemon/live_w32.ow
 

@@ -16,6 +16,7 @@
 #include "util.h"
 #include "conf.h"
 #include "lineio.h"
+#include "textcv.h"
 #include "session.h"
 #include "live.h"
 
@@ -224,6 +225,11 @@ int main(int argc, char **argv)
 #else
         ix_ok = 1;      /* POSIX select covers serial fds too */
 #endif
+#endif
+#ifdef GCDS_TEXTCV
+        /* normalize this host's text encoding to the wire convention
+           (textcv.h). `codepage`: auto (default) | off | <number> */
+        txt_init(conf_gets(g_kv, g_nkv, "codepage", "auto"));
 #endif
         session_init(tmpdir, token, adv_async, live_ok, ix_ok);
     }

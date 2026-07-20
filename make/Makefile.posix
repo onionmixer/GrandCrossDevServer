@@ -12,7 +12,8 @@ CFLAGS   = -ansi -pedantic -Wall -O2
 LIBS     =
 
 COMMON_OBJ = common/util.o common/net.o common/ser_psx.o \
-             common/chan.o common/lineio.o common/conf.o common/acl.o
+             common/chan.o common/lineio.o common/conf.o common/acl.o \
+             common/textcv.o
 GCDSD_OBJ   = daemon/main.o daemon/session.o daemon/exec_psx.o \
              daemon/live.o
 GCDS_OBJ    = client/main.o client/remote.o client/pathmap.o \
