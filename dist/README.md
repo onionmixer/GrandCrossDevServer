@@ -25,11 +25,11 @@
 
 ✅ 6/6 수집 완료.
 
-> **재수집 필요**: `macos`/`haiku`/`next` 바이너리는 설정 탐색이
-> `.cnf` 우선으로 바뀌기 **이전** 빌드다(해당 머신이 꺼져 있어 갱신
-> 못 함). 그 상태에서는 `gcdsd.conf` 이름이어야 로드된다. 각 머신을
-> 켠 뒤 `./dist/harvest.sh macos haiku` / next는 doc/next.md 절차로
-> 재수집하면 `.cnf`로 동작한다. linux·win32·dos는 갱신 완료.
+> **재수집 필요**: `haiku`/`next` 바이너리는 설정 탐색이 `.cnf`
+> 우선으로 바뀌기 **이전** 빌드다(해당 머신이 꺼져 있어 갱신 못 함).
+> 그 상태에서는 `gcdsd.conf` 이름이어야 로드된다. 머신을 켠 뒤
+> `./dist/harvest.sh haiku` / next는 doc/next.md 절차로 재수집하면
+> `.cnf`로 동작한다. linux·win32·dos·macos는 갱신 완료.
 
 ### win32/dos 크로스툴체인
 win32/dos는 Linux 호스트에서 크로스컴파일한다(wine/DOSBox는 실행
