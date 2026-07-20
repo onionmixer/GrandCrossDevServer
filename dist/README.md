@@ -23,13 +23,8 @@
 | win32  | gcdsd.exe | TCP·COM | 크로스 llvm-mingw(i686) | ✅ | PE32 i386. wine 기동 확인(LIVE INTERACTIVE) |
 | dos    | gcdsd-serial.exe, gcdsd-tcp.exe | 시리얼 / TCP | 크로스 Open Watcom 16bit | ✅ | 비동기(ASYNC). serial=FOSSIL, tcp=Watt-32 |
 
-✅ 6/6 수집 완료.
-
-> **재수집 필요**: `next` 바이너리만 설정 탐색이 `.cnf` 우선으로
-> 바뀌기 **이전** 빌드다(OPENSTEP으로 부팅해야 갱신 가능 — Haiku와
-> 같은 물리머신). 그 상태에서는 `gcdsd.conf` 이름이어야 로드된다.
-> OPENSTEP 부팅 후 doc/next.md 절차로 재수집하면 `.cnf`로 동작한다.
-> 나머지 5개(linux·win32·dos·macos·haiku)는 갱신 완료.
+✅ 6/6 수집 완료 — 전부 현재 소스 기준이며, `.cnf` 우선 설정 탐색이
+반영돼 있다(개명 없이 `gcdsd.cnf` 그대로 동작).
 
 ### win32/dos 크로스툴체인
 win32/dos는 Linux 호스트에서 크로스컴파일한다(wine/DOSBox는 실행
