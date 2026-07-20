@@ -40,6 +40,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "handle.h"
 #include "nfs.h"
 
 /* resolve a user spec (name or numeric uid) to uid+primary gid.
@@ -203,6 +204,7 @@ int main(int argc, char **argv)
     }
 
     rpc_set_verbose(verbose);
+    fh_set_root(abs);
     svc_config(abs, nfs_port);
     {
         struct passwd *pw = getpwuid(geteuid());

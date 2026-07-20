@@ -16,6 +16,7 @@ $(OBJ): xdr.h rpc.h handle.h nfs.h
 
 test: gnfsd
 	./test-nfs.sh
+	./test-persist.sh
 
 clean:
 	rm -f $(OBJ) gnfsd

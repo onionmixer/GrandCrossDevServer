@@ -75,13 +75,36 @@ OPENSTEP은 sshfs가 없어(telnet만), **자작 NFS 서버(gnfsd)** 공유에
 
 ```
 /next-mount.csh          # gnfsd 공유를 /nfstest에 mount
+/next-mount.csh -n       # noac 추가(호스트 편집 즉시 반영)
 /next-mount.csh -u       # 언마운트
 /next-mount.csh <server> <export> <mountpoint>   # 기본값 재정의
 ```
 
-- 주의: NeXTSTEP NFS 클라이언트는 파일 속성을 캐시한다. 소스를
-  갱신하면 `/next-mount.csh`를 다시 실행하면 된다(먼저 umount 후
-  재mount하여 캐시를 비운다). 마운트 옵션에도 `noac`가 들어 있다.
+### NFS 마운트 옵션 (중요)
+
+스크립트가 쓰는 기본값이자, 손으로 마운트할 때 권장하는 조합:
+
+```
+mount -t nfs -o hard,intr,timeo=30,retrans=5 <서버IP>:<export> /nfstest
+```
+
+| 옵션 | 값 | 이유 |
+|------|-----|------|
+| `hard` | — | 타임아웃 시 **실패가 아니라 재시도**. `soft`면 응답 하나가 밀리는 순간 I/O 에러가 나고, 실패한 마운트가 남아 이후 재마운트가 `Device busy`로 거부된다 |
+| `intr` | — | `hard`여도 Ctrl-C로 빠져나올 수 있게. 서버가 정말 죽었을 때의 탈출구 |
+| `timeo` | `30` | **1/10초 단위**라 3.0초. 기본값 10(1초)은 바쁜 서버나 구형 NIC이 답하기 전에 포기한다 |
+| `retrans` | `5` | 재전송 횟수 |
+| `noac` | (선택) | 속성 캐시를 꺼서 호스트 편집이 즉시 보인다. 대신 GETATTR 요청이 몇 배로 늘어 빌드 중엔 불리하므로 **평소엔 빼고**, 소스를 고치는 중일 때만 `-n`으로 켠다 |
+
+NeXTSTEP의 `mount`는 4.2BSD/SunOS 계열 옵션을 받는다. 위 조합은 실기에서
+검증됐다.
+
+- 주의: NeXTSTEP NFS 클라이언트는 파일 속성을 캐시한다. 호스트에서
+  소스를 갱신했는데 안 보이면 `/next-mount.csh`를 다시 실행하면 된다
+  (umount 후 재mount로 캐시를 비운다). 편집을 계속할 예정이면
+  `/next-mount.csh -n`으로 `noac`를 켜 두는 편이 편하다.
+- gnfsd를 재시작해도 **클라이언트를 재마운트할 필요는 없다** — 파일
+  핸들이 재시작을 넘겨 유효하다(nfsd/README.md).
 - `mkdir -p` 금지: NeXTSTEP mkdir엔 `-p`가 없어 `-p`라는 디렉터리를
   만들어버린다. 스크립트는 `if (! -d) mkdir`로 처리한다.
 

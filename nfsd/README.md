@@ -70,16 +70,19 @@ GETATTR/CREATE/WRITE/READ/LOOKUP/MKDIR/READDIR/STATFS/REMOVE/RMDIR을
 
 root로 111+2049에 띄운 뒤 NeXTSTEP/OPENSTEP 클라이언트에서:
 ```
-mount -t nfs -o soft,timeo=10 <서버IP>:/공유경로 /nfstest
+mount -t nfs -o hard,intr,timeo=30,retrans=5 <서버IP>:/공유경로 /nfstest
 ```
+옵션의 의미와 선택 이유는 doc/next.md의 "NFS 마운트 옵션" 표를 본다.
+`next-mount.csh`가 이 값을 기본으로 쓴다.
 
-### 소스가 자주 바뀌면 `-o noac` (중요)
+### 소스가 자주 바뀌면 `-o noac` (선택)
 
 빌드용 소스 공유처럼 파일이 계속 바뀌고 **즉시 반영**이 필요하면
 클라이언트의 속성 캐시를 끈다:
 ```
-mount -t nfs -o soft,timeo=10,noac <서버IP>:/공유경로 /nfstest
+mount -t nfs -o hard,intr,timeo=30,retrans=5,noac <서버IP>:/공유경로 /nfstest
 ```
+(`next-mount.csh -n`이 이 형태로 마운트한다.)
 NFSv2 클라이언트는 mtime 기반 속성 캐시를 두어(수 초~수십 초),
 캐시 유효 동안 갱신을 못 본다(remount 필요). `noac`(또는 낮은
 `actimeo`)면 매번 서버에 재확인해 갱신이 바로 보인다. 트레이드오프는
@@ -168,11 +171,19 @@ READLINK(5)와 대칭을 위한 SYMLINK(13)를 구현한 뒤 실기 재검증:
 | 심링크 `cat` | — | 내용 정상, 종료코드 0 |
 | 6.3MB tar 읽기 | — | 성공 |
 
-### 파일 핸들은 서버 재시작을 넘기지 못한다
+### 파일 핸들은 서버 재시작을 넘긴다
 
-핸들이 인메모리 경로 테이블의 인덱스라, gnfsd를 재시작하면 기존 핸들이
-모두 무효가 되고 클라이언트는 stale 오류를 본다. **gnfsd를 재시작했으면
-클라이언트에서 재마운트**해야 한다(`next-mount.csh` 재실행).
+핸들에는 테이블 인덱스(빠른 경로)와 함께 **export 루트 기준 상대경로의
+해시**가 들어 있다. 재시작하면 테이블이 비므로 인덱스는 맞지 않지만, 그때
+export를 **한 번만** 훑어 모든 경로를 다시 등록하고 해시로 핸들을
+찾아낸다. 그래서 gnfsd를 재시작해도 **클라이언트는 재마운트하지 않아도
+된다**. 상태 파일은 쓰지 않는다.
+
+- 경로 기준이 상대경로라, export를 다른 절대경로로 옮겨 다시 띄워도
+  핸들이 유지된다.
+- 대상 파일이 정말 사라졌으면 재구축 후에도 못 찾고 정상적으로 stale이 된다.
+- 트리를 한 번 훑는 비용이 재시작 후 첫 옛-핸들 요청에 한 번 발생한다
+  (검증에 쓴 2861파일 트리에서 수십 ms 수준).
 
 ### NeXTSTEP 잔가지
 
