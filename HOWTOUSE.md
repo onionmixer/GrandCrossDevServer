@@ -261,8 +261,15 @@ mount:
 sudo ./nfsd/serve.sh <공유폴더>          # portmap 111 + nfs 2049
 ```
 - OPENSTEP에서 마운트는 csh 헬퍼 `dist/next/next-mount.csh`(대상에
-  복사해 실행): `/next-mount.csh` (mount), `/next-mount.csh -u`
-  (umount). 상세 nfsd/README.md, doc/next.md.
+  복사해 실행):
+  - `/next-mount.csh` — 마운트. 기본 옵션 `hard,intr,timeo=30,retrans=5`
+    (`hard`라 서버가 잠깐 밀려도 실패 대신 재시도)
+  - `/next-mount.csh -n` — `noac` 추가. 호스트에서 소스를 고치는 중이라
+    즉시 반영이 필요할 때만(요청량이 늘어 빌드 중엔 불리)
+  - `/next-mount.csh -u` — 언마운트
+- gnfsd를 재시작해도 **재마운트할 필요가 없다**(파일 핸들이 재시작을
+  넘긴다). 옵션의 의미와 선택 이유는 doc/next.md의 표, 서버 쪽 상세는
+  nfsd/README.md.
 
 ## 12. 직접 빌드 (네이티브 · 크로스)
 
