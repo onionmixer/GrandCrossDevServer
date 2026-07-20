@@ -510,6 +510,66 @@ static int nfs_rename(rpc_call_t *c, xdr_t *in, xdr_t *out)
     return 0;
 }
 
+/* READLINK: return the target of a symbolic link.
+   Without this the client sees NFLNK from LOOKUP but cannot resolve it;
+   old clients treat the resulting error as a dead server and retry
+   forever, which wedges the mount. Source trees do contain symlinks, so
+   this is not optional. */
+static int nfs_readlink(rpc_call_t *c, xdr_t *in, xdr_t *out)
+{
+    const char *path;
+    char buf[1024];
+    int n;
+
+    (void)c;
+    if (arg_fh(in, out, &path) < 0)
+        return 0;
+    n = (int)readlink(path, buf, sizeof(buf) - 1);
+    if (n < 0) {
+        xdr_put_u32(out, errno_to_nfs(errno));
+        return 0;
+    }
+    buf[n] = '\0';
+    xdr_put_u32(out, NFS_OK);
+    xdr_put_bytes(out, buf, (uint32_t)n);
+    return 0;
+}
+
+/* SYMLINK: create one. Kept symmetric with READLINK so a tree copied
+   onto the share keeps its links. NFSv2 SYMLINK returns status only. */
+static int nfs_symlink(rpc_call_t *c, xdr_t *in, xdr_t *out)
+{
+    const char *dir;
+    char name[NAMEMAX + 1];
+    char child[1024];
+    char target[1024];
+    uint32_t mode, uid, gid, size, a1, a2, m1, m2;
+
+    (void)c;
+    if (arg_fh(in, out, &dir) < 0)
+        return 0;
+    if (xdr_get_string(in, name, sizeof(name)) < 0)
+        return -1;
+    if (xdr_get_string(in, target, sizeof(target)) < 0)
+        return -1;
+    /* sattr follows the target in NFSv2 SYMLINK; read and ignore it */
+    if (xdr_get_u32(in, &mode) < 0 || xdr_get_u32(in, &uid) < 0 ||
+        xdr_get_u32(in, &gid) < 0 || xdr_get_u32(in, &size) < 0 ||
+        xdr_get_u32(in, &a1) < 0 || xdr_get_u32(in, &a2) < 0 ||
+        xdr_get_u32(in, &m1) < 0 || xdr_get_u32(in, &m2) < 0)
+        return -1;
+    if (join_child(dir, name, child, sizeof(child)) < 0) {
+        xdr_put_u32(out, NFSERR_ACCES);
+        return 0;
+    }
+    if (symlink(target, child) < 0) {
+        xdr_put_u32(out, errno_to_nfs(errno));
+        return 0;
+    }
+    xdr_put_u32(out, NFS_OK);
+    return 0;
+}
+
 static int nfs_readdir(rpc_call_t *c, xdr_t *in, xdr_t *out)
 {
     const char *path;
@@ -602,11 +662,13 @@ const rpc_route_t GN_ROUTES[] = {
     { NFS_PROG,   NFS_VERS,   1, nfs_getattr,   0 },
     { NFS_PROG,   NFS_VERS,   2, nfs_setattr,   1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,   4, nfs_lookup,    0 },
+    { NFS_PROG,   NFS_VERS,   5, nfs_readlink,  0 },
     { NFS_PROG,   NFS_VERS,   6, nfs_read,      0 },
     { NFS_PROG,   NFS_VERS,   8, nfs_write,     1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,   9, nfs_create,    1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  10, nfs_remove,    1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  11, nfs_rename,    1 },  /* non-idempotent */
+    { NFS_PROG,   NFS_VERS,  13, nfs_symlink,   1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  14, nfs_mkdir,     1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  15, nfs_rmdir,     1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  16, nfs_readdir,   0 },

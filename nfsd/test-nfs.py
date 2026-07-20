@@ -160,6 +160,24 @@ ra, rb, rc = drc_test()
 ok("DRC replays retransmit (REMOVE #1=0, retransmit=0)", ra == 0 and rb == 0)
 ok("DRC lets a genuinely new request run (new xid -> NOENT)", rc == 2)
 
+# SYMLINK / READLINK - a source tree contains symlinks, and a client
+# that gets NFLNK from LOOKUP but no READLINK hangs retrying.
+r = call(NFSP, 2, 13, rootfh + s_string("gn_link") + s_string("gn_test.txt") +
+         struct.pack(">IIIIIIII", 0o777, 0xffffffff, 0xffffffff, 0,
+                     0xffffffff, 0, 0xffffffff, 0))
+st, o = r_u32(r, 0); ok("SYMLINK gn_link -> gn_test.txt", st == 0)
+r = call(NFSP, 2, 4, rootfh + s_string("gn_link"))
+st, o = r_u32(r, 0); ok("LOOKUP gn_link status=0", st == 0)
+linkfh, o = r_fh(r, o)
+ftype, _ = r_u32(r, o)                      # fattr starts with type
+ok("LOOKUP reports NFLNK(5) for the symlink", ftype == 5)
+r = call(NFSP, 2, 5, linkfh)                # READLINK
+st, o = r_u32(r, 0); ok("READLINK status=0", st == 0)
+tgt, o = r_string(r, o)
+ok("READLINK returns the target (b'gn_test.txt')", tgt == b"gn_test.txt")
+r = call(NFSP, 2, 10, rootfh + s_string("gn_link"))
+st, o = r_u32(r, 0); ok("REMOVE gn_link", st == 0)
+
 # REMOVE / RMDIR cleanup
 r = call(NFSP, 2, 10, rootfh + s_string("gn_test.txt"))
 st, o = r_u32(r, 0); ok("REMOVE gn_test.txt", st == 0)
