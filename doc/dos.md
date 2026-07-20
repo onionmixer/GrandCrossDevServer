@@ -90,7 +90,13 @@ gcdsd
   대형 컴파일러/프로그램 실행 시 부족(errcode=8) 가능. 내부 명령
   (echo 등)과 소형 도구는 OK. EMS/스왑 활용은 v1 범위 밖.
 
-### 검증 (DOSBox-X + NE2000 + slirp)
+### 텍스트 인코딩
+
+**ASCII 전제**다. 인코딩 변환 모듈(textcv)을 링크조차 하지 않아
+DGROUP에 영향이 없고, 바이트는 그대로 통과한다. 따라서 greeting에
+`UTF8` capability를 표기하지 않는다(PLAN_02 §5.2).
+
+## 검증 (DOSBox-X + NE2000 + slirp)
 
 DOSBox-X `[ne2000] backend=slirp` + `[ethernet,slirp]
 tcp_port_forwards=2321:2321`로 호스트→게스트 포워딩. Crynwr NE2000

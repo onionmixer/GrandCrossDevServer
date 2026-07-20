@@ -68,6 +68,22 @@ CreateJobObject/AssignProcessToJobObject/TerminateJobObject는
 CreateProcess는 CREATE_SUSPENDED로 만들어 job 할당 후 ResumeThread
 (손자 생성 전 할당, 레이스 방지).
 
+## 텍스트 인코딩 (코드페이지)
+
+한국어/일본어 Windows에서 MSVC·cmd 출력은 UTF-8이 아니라 **로컬
+코드페이지**(CP949/932 등)다. 데몬이 이를 와이어 규약(UTF-8)으로
+변환한다 — 변환하지 않으면 Linux 클라이언트에서 깨져 보인다.
+
+- 코드페이지는 `GetConsoleOutputCP()`→`GetACP()`로 **런타임 감지**하며
+  하드코딩하지 않는다. CP949/932/936/950/1252 모두 동작하고, 이미
+  65001(UTF-8)이면 변환을 건너뛴다.
+- 방향: 출력(O/E)은 로컬→UTF-8, 수신(명령행·CWD·ENV·stdin)은 UTF-8→로컬.
+- **PUT/GET(D 프레임)은 변환하지 않는다** — 바이너리가 깨진다.
+- 자동 감지가 어긋나면 `gcdsd.cnf`에 `codepage = 949`(또는 `off`)로 고정.
+- greeting에 `UTF8` capability가 붙는다.
+
+구현·규칙은 common/textcv.c, PLAN_02 §5.2.
+
 ## MSVC 실기 빌드
 
 `nmake /f make/Makefile.win32`로 **MSVC 실기 빌드·검증 완료**.

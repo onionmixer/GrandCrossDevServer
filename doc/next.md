@@ -38,6 +38,12 @@ make -f make/Makefile.next          # ./gcdsd (데몬)
 자식에서 `setpgid(0, getpid())`로 명시 pid를 준다(K의 프로세스 그룹
 종료가 4.3BSD에서도 동작).
 
+## 텍스트 인코딩
+
+**ASCII 전제**다. NeXTSTEP은 자체 8비트 인코딩을 쓰고 한글을 지원하지
+않아 실사용 텍스트(cc 에러, `/usr/adm/messages`)가 사실상 ASCII이므로
+변환하지 않는다(textcv 미링크). greeting에 `UTF8`을 표기하지 않는다.
+
 ## 시리얼: sgtty 백엔드 (ser_next.c)
 
 NeXTSTEP은 `<termios.h>`는 있으나 `tcsetattr`/`cfsetispeed` 등
