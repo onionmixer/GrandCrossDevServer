@@ -87,8 +87,7 @@ Linux 호스트에서 이기종 원격 머신(Windows, macOS, BeOS, NeXTSTEP 등
 | BeOS/Haiku | Makefile.posix `LIBS=-lnetwork` | ✅ 실기(Haiku, SSH) | TCP·시리얼 | gcc 2.95, BeOS 세대 |
 | NeXTSTEP/OPENSTEP | Makefile.next | ✅ 실기(OPENSTEP, telnet) | TCP·시리얼 | NeXT cc 2.7, LIVE·RUNI·sgtty |
 
-- macOS·Haiku·NeXTSTEP·Windows는 실기 검증. **MS-DOS만 에뮬레이션
-  (DOSBox-X) 검증**이며 실기(FOSSIL 상주 + 널모뎀)는 잔여 작업이다.
+- macOS·Haiku·NeXTSTEP·Windows는 실기, MS-DOS는 DOSBox-X로 검증됐다.
   각 플랫폼 상세는 `doc/*.md`.
 
 ## 시작하기

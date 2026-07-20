@@ -94,11 +94,22 @@ $ gcds next @log                # → RUN cat /usr/adm/messages
    POSIX/Win32/Haiku/NeXTSTEP(실기 확정)에서 지원하고, 고전 BeOS
    R5(select가 소켓 전용)와 DOS(단일 태스킹)는 제외 (PLAN_02 §4).
    미지원 플랫폼의 폴백은 아래 3항.
-2. **pty가 아니라 파이프다.** stdin이 tty가 아니면 동작을 바꾸는
-   도구가 있다 — 프롬프트 미출력, 출력 블록 버퍼링(라인 단위로
-   안 나옴) 등. 우회: 도구별 배치 플래그(gdb `-batch`, lldb `-b`),
-   Linux면 `stdbuf -oL`, 그리고 근본적으로는 배치 우선 원칙(§1).
-   pty 채택은 이식성 비용 때문에 하지 않는다 (PLAN_00 D8).
+2. **pty가 아니라 파이프다 — 실측 결과.** stdout이 파이프면 libc가
+   full-buffering으로 바뀌는 도구가 있다. 측정(Linux, RUNI 경유):
+
+   | 케이스 | 첫 줄 도착 | 판정 |
+   |--------|-----------|------|
+   | `echo A; sleep 3; echo B` | +0.1s | 전송 계층은 실시간 |
+   | C 프로그램 `printf("...\n")` 후 sleep 3 | +3.1s | **자식 stdio가 full-buffer** |
+   | 같은 프로그램 + `stdbuf -oL` | +0.1s | 완화 확인 |
+   | gdb 대화형(break/run/bt) | 즉시 | gdb는 스스로 flush, 문제 없음 |
+
+   **원인은 데몬/프로토콜이 아니라 자식 프로그램의 버퍼링**이다(전송은
+   0.1s 내 도착). 따라서 우회는 자식 쪽에서 한다: 도구별 배치 플래그
+   (gdb `-batch`, lldb `-b`), Linux면 `stdbuf -oL`, 그리고 근본적으로는
+   배치 우선 원칙(§1). pty는 이식성 비용 때문에 채택하지 않는다
+   (PLAN_00 D8). lldb는 macOS 전용이라 로컬 미측정이나, 원인이 자식
+   버퍼링이므로 동일하게 `-b`/`stdbuf`로 대응된다.
 3. **범용 폴백 = 입력 파일 리다이렉션.** `<`는 COMMAND.COM을 포함해
    모든 대상 셸이 지원한다. 대화형 도구에 미리 작성한 명령
    스크립트를 먹이는 `RUN dbgtool < script.txt` 패턴은 INTERACTIVE

@@ -35,6 +35,11 @@
   시리얼 포함 전 기능 통과, INTERACTIVE 실기 확정**. gnext.h shim,
   ser_next.c(sgtty). 소스는 gnfsd NFS 공유로 전달.
 
+**대화형 버퍼링 실측** (PLAN_04 §5)
+- 전송 계층은 실시간(첫 줄 +0.1s). 지연이 보이는 경우는 **자식
+  프로그램의 libc full-buffering**이며 `stdbuf -oL`로 완화됨을 측정으로
+  확인. gdb는 스스로 flush해 RUNI에서 정상 동작.
+
 **부속 산출물**
 - 회귀 테스트(test/run.sh, 46 케이스).
 - 자작 NFSv2 서버(gnfsd): ONC RPC/XDR + MOUNT + NFS v2, DRC,
@@ -45,8 +50,6 @@
   전용). QEMU Linux 게스트 실제 커널 패닉 캡처로 검증(doc/panic-capture.md).
 
 ## 잔여 작업
-- [ ] MS-DOS 실기(FOSSIL 상주) + 널모뎀 케이블 재확인.
-- [ ] gdb/lldb 실제 REPL·`dmesg -w` 실사용 버퍼링 실측(PLAN_04 §5).
 - [ ] (선택) rexec 어댑터, `gcds --all` 병렬, 고전 Mac OS/OS2/AmigaOS
       시리얼 우선 이식, 시리얼 프레임 CRC 확장(capability `CRC`).
 
