@@ -60,10 +60,15 @@
 
 ### D5. 설정은 key=value 평문 파일
 - 파서 의존성 없음. `#` 주석, 빈 줄 허용, 한 줄 최대 1023바이트.
-- 데몬: `gcdsd.conf` — port, token, allow(선택), shell(선택),
+- **파일명은 3자 확장자(`.cnf`)를 먼저 찾는다** — Windows/DOS가 8.3을
+  쓰고 dist/도 `.cnf`로 배포하므로 개명 없이 동작한다. 데몬은
+  `gcdsd.cnf` → `gcdsd.conf`(DOS는 FAT 8.3이라 `.cnf`만), 클라이언트는
+  `$GCDS_CONF` → `./gcds.cnf` → `./gcds.conf` → `~/.gcds.cnf` →
+  `~/.gcds.conf` 순. `-c <파일>`로 명시하면 그것을 쓴다.
+- 데몬: `gcdsd.cnf` — port, token, allow(선택), shell(선택),
   tmpdir(선택), logfile(선택), serial(선택 — 지정 시 TCP 대신
   시리얼 모드: `serial=COM1:9600`)
-- 클라이언트: `gcds.conf` — 호스트 별칭 블록
+- 클라이언트: `gcds.cnf` — 호스트 별칭 블록
   (`host.<alias>.addr`, `host.<alias>.port`, `host.<alias>.token`,
    또는 TCP 대신 `host.<alias>.serial=/dev/ttyUSB0:9600` — D10,
    `host.<alias>.map.<n>` 경로 매핑,
@@ -169,7 +174,7 @@ $ gcds win   "cdb -c 'g; kv; q' -z crash.dmp"  # 배치 디버거 — 일반 RUN
 $ gcds -i macos "lldb ./prog"                  # 대화형(RUNI) — 키 입력 전달,
                                               #   Ctrl-C 는 K 프레임(원격 중단)
 $ gcds -i linux2 "dmesg -w"                    # 커널 로그 스트림, Ctrl-C로 종료
-$ gcds win @debug crash.dmp                    # 호스트별 도구 별칭(gcds.conf)
+$ gcds win @debug crash.dmp                    # 호스트별 도구 별칭(gcds.cnf)
 ```
 
 - 원격 stdout → 로컬 stdout, 원격 stderr → 로컬 stderr,

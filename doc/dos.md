@@ -20,8 +20,13 @@ make -f make/Makefile.dos WATCOM=/path/to/ow-snapshot
 ## 실행 (대상 DOS에서)
 
 ```
-gcdsd -c gcdsd.cnf
+gcdsd
 ```
+설정은 같은 디렉토리의 `gcdsd.cnf`를 자동으로 읽는다.
+**DOS는 FAT 8.3이라 `.conf`(4자)가 존재할 수 없어 `.cnf`만 찾는다**
+(`/`는 DOS에서 경로 구분자가 아니라 명령 스위치 문자이므로, 데몬이
+만드는 임시 경로도 `\`로 결합된다 — `.\gcds_out.tmp`).
+
 `gcdsd.cnf` 예:
 ```
 token = dt
@@ -77,7 +82,7 @@ make -f make/Makefile.dtcp WATCOM=/path/to/ow WATT=/path/to/watt32
 
 ```
 NE2000 0x60 3 0x300         ; 패킷 드라이버 (Crynwr, IO/IRQ는 NIC에 맞춤)
-gcdsd -c gcdsd.cnf
+gcdsd
 ```
 - `WATTCP.CFG` 필요(같은 디렉토리): `my_ip`, `netmask`, `gateway`.
 - `gcdsd.cnf`: `port`/`token`/`async = 1` (serial= 없으면 TCP 모드).

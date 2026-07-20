@@ -21,7 +21,7 @@ Linux 호스트에서 mac의 작업 디렉토리를 sshfs로 마운트하여
 ```sh
 # Linux 호스트:
 sshfs user@mac:gcds_work /mnt/mac -o reconnect
-# gcds.conf 경로 매핑:
+# gcds.cnf 경로 매핑:
 #   host.mac.map.1 = /mnt/mac|/Users/user/gcds_work
 cd /mnt/mac
 gcds mac 'clang -o app app.c'      # cwd가 원격 경로로 자동 매핑
