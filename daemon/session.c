@@ -45,6 +45,29 @@ static char g_ref[PATHBUF];
    keeps the DOS large-model DGROUP within 64K (PLAN_02 4). */
 static char g_fbuf[GCDSP_FRAME_MAX];
 
+/* Separator used when joining tmpdir with our temp file names.
+   Windows and MS-DOS use '\' natively, and on DOS '/' is the command
+   SWITCH character - a path that may reach COMMAND.COM must not use it
+   (exec_w32.c also hands these paths to cmd.exe for redirection).
+   The configured tmpdir may be written with either spelling; a trailing
+   separator of either kind is accepted and not doubled. */
+#if defined(GCDS_WIN32) || defined(GCDS_DOS)
+#define TMP_SEP "\\"
+#else
+#define TMP_SEP "/"
+#endif
+
+static void join_tmp(char *dst, const char *dir, const char *name)
+{
+    long n;
+
+    gcds_strlcpy(dst, dir, PATHBUF);
+    n = (long)strlen(dst);
+    if (n > 0 && dst[n - 1] != '/' && dst[n - 1] != '\\')
+        gcds_strlcat(dst, TMP_SEP, PATHBUF);
+    gcds_strlcat(dst, name, PATHBUF);
+}
+
 void session_init(const char *tmpdir, const char *token,
                   int adv_async, int live_ok, int ix_ok)
 {
@@ -53,14 +76,10 @@ void session_init(const char *tmpdir, const char *token,
     g_live = live_ok;
     g_ix = ix_ok;
 
-    gcds_strlcpy(g_outf, tmpdir, PATHBUF);
-    gcds_strlcat(g_outf, "/gcds_out.tmp", PATHBUF);
-    gcds_strlcpy(g_errf, tmpdir, PATHBUF);
-    gcds_strlcat(g_errf, "/gcds_err.tmp", PATHBUF);
-    gcds_strlcpy(g_rof, tmpdir, PATHBUF);
-    gcds_strlcat(g_rof, "/gcds_ro.tmp", PATHBUF);
-    gcds_strlcpy(g_ref, tmpdir, PATHBUF);
-    gcds_strlcat(g_ref, "/gcds_re.tmp", PATHBUF);
+    join_tmp(g_outf, tmpdir, "gcds_out.tmp");
+    join_tmp(g_errf, tmpdir, "gcds_err.tmp");
+    join_tmp(g_rof,  tmpdir, "gcds_ro.tmp");
+    join_tmp(g_ref,  tmpdir, "gcds_re.tmp");
 }
 
 void session_set_acl(const char *allow)

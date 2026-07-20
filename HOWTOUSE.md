@@ -98,6 +98,8 @@ echo $?                                # 원격 exit code가 그대로
 port   = 9910                 # TCP 포트 (기본 9910)
 token  = changeme             # 공유 시크릿(필수, 내부망 전용)
 tmpdir = /tmp                 # RUN 출력 캡처 임시파일 위치
+                              # (Windows/DOS 기본값은 `.`; 경로는 각
+                              #  OS 네이티브 구분자 `\`로 결합된다)
 async  = 0                    # 1이면 ASYNC 광고(DOS 필수)
 #serial = /dev/ttyS0:9600     # 있으면 TCP 대신 시리얼 모드
 #allow  = 192.168.1.0/24 10.0.0.5   # TCP 접속 허용 IP/CIDR(비면 전체 허용)
