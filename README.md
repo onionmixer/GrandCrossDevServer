@@ -97,14 +97,14 @@ Linux 호스트에서 이기종 원격 머신(Windows, macOS, BeOS, NeXTSTEP 등
 
 ```sh
 make -f make/Makefile.posix     # gcds(호스트) + gcdsd(데몬) 빌드
-cp etc/gcdsd.cnf gcdsd.conf     # 원격: token 수정 후  ./gcdsd -c gcdsd.conf
-cp etc/gcds.cnf ~/.gcds.conf    # 호스트: 별칭/토큰 수정
+cp etc/gcdsd.cnf gcdsd.cnf      # 원격: token 수정 후  ./gcdsd
+cp etc/gcds.cnf ~/.gcds.cnf     # 호스트: 별칭/토큰 수정
 ./gcds local "gcc hello.c && ./a.out"   # 원격 실행, exit code 그대로
 ```
 
 각 원격 머신에 **복사만 하면 바로 쓰는** 데몬 바이너리는 플랫폼별로
 [`dist/`](dist/README.md)에 정리돼 있다(`dist/<platform>/` 복사 →
-`gcdsd.conf`의 `token` 수정 → 실행).
+`gcdsd.cnf`의 `token` 수정 → 실행).
 
 ## 알려진 한계 (v1)
 

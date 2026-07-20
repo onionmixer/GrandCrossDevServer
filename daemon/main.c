@@ -148,7 +148,7 @@ int main(int argc, char **argv)
     long port;
     int adv_async;
 
-    cfile = "gcdsd.conf";
+    cfile = NULL;
     if (argc == 3 && strcmp(argv[1], "-c") == 0) {
         cfile = argv[2];
     } else if (argc != 1) {
@@ -156,10 +156,35 @@ int main(int argc, char **argv)
         return 2;
     }
 
-    g_nkv = conf_load(cfile, g_kv, CONF_ENT_MAX);
-    if (g_nkv < 0) {
-        fprintf(stderr, "gcdsd: cannot read %s\n", cfile);
-        return 2;
+    if (cfile != NULL) {
+        /* explicit -c: use exactly what was asked for */
+        g_nkv = conf_load(cfile, g_kv, CONF_ENT_MAX);
+        if (g_nkv < 0) {
+            fprintf(stderr, "gcdsd: cannot read %s\n", cfile);
+            return 2;
+        }
+    } else {
+        /* Default lookup: the 3-char extension comes FIRST - that is what
+           dist/ ships, so the config works with no rename.
+           MS-DOS is strictly 8.3: a 4-char ".conf" cannot exist on FAT, so
+           the DOS build looks for gcdsd.cnf only (also saves DGROUP).
+           Windows/POSIX fall back to gcdsd.conf. */
+        cfile = "gcdsd.cnf";
+        g_nkv = conf_load(cfile, g_kv, CONF_ENT_MAX);
+#ifndef GCDS_DOS
+        if (g_nkv < 0) {
+            cfile = "gcdsd.conf";
+            g_nkv = conf_load(cfile, g_kv, CONF_ENT_MAX);
+        }
+#endif
+        if (g_nkv < 0) {
+#ifdef GCDS_DOS
+            fprintf(stderr, "gcdsd: cannot read gcdsd.cnf\n");
+#else
+            fprintf(stderr, "gcdsd: cannot read gcdsd.cnf or gcdsd.conf\n");
+#endif
+            return 2;
+        }
     }
 
     token = conf_get(g_kv, g_nkv, "token");

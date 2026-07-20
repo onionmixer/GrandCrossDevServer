@@ -1,4 +1,6 @@
-# gcdsd.cnf - sample daemon config (copy to gcdsd.conf and edit)
+# gcdsd.cnf - daemon config. Copy next to gcdsd and edit token below.
+# Lookup with no -c: gcdsd.cnf first, then gcdsd.conf (MS-DOS is 8.3, so
+# the DOS build looks for gcdsd.cnf only). No rename needed.
 
 # TCP port (default 9910)
 port = 9910

@@ -6,7 +6,7 @@
 
 ## 쓰는 법 (공통 3단계)
 1. 대상 OS의 디렉터리(`dist/<platform>/`)를 원격 머신으로 복사.
-2. `gcdsd.cnf` → `gcdsd.conf`로 복사하고 `token`을 바꾼다(내부망 전용,
+2. `gcdsd.cnf`의 `token`을 바꾼다(개명 불필요 — 내부망 전용,
    README 전제 5). 필요 시 `port`/`serial`/`async`도 조정.
 3. 데몬 실행 → Linux 호스트에서 `gcds <alias> "<명령>"`.
 
@@ -24,6 +24,12 @@
 | dos    | gcdsd-serial.exe, gcdsd-tcp.exe | 시리얼 / TCP | 크로스 Open Watcom 16bit | ✅ | 비동기(ASYNC). serial=FOSSIL, tcp=Watt-32 |
 
 ✅ 6/6 수집 완료.
+
+> **재수집 필요**: `macos`/`haiku`/`next` 바이너리는 설정 탐색이
+> `.cnf` 우선으로 바뀌기 **이전** 빌드다(해당 머신이 꺼져 있어 갱신
+> 못 함). 그 상태에서는 `gcdsd.conf` 이름이어야 로드된다. 각 머신을
+> 켠 뒤 `./dist/harvest.sh macos haiku` / next는 doc/next.md 절차로
+> 재수집하면 `.cnf`로 동작한다. linux·win32·dos는 갱신 완료.
 
 ### win32/dos 크로스툴체인
 win32/dos는 Linux 호스트에서 크로스컴파일한다(wine/DOSBox는 실행

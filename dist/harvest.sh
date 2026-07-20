@@ -60,8 +60,9 @@ harvest_linux() {
     make -f make/Makefile.posix >/dev/null 2>&1 || { skip "posix build failed"; return; }
     ( cd nfsd && make >/dev/null 2>&1 )   # gnfsd
     cp -f gcds gcdsd "$DIST/linux/" 2>/dev/null
+    [ -x gcdslog ] && cp -f gcdslog "$DIST/linux/"      # panic-capture tool
     [ -x nfsd/gnfsd ] && cp -f nfsd/gnfsd "$DIST/linux/"
-    ok "gcds gcdsd gnfsd"
+    ok "gcds gcdsd gcdslog gnfsd"
 }
 
 # --- win32: llvm-mingw / mingw cross --------------------------------

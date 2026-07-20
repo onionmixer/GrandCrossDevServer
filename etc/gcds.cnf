@@ -1,5 +1,6 @@
 # gcds.cnf - sample client config
-# search order: $GCDS_CONF, ./gcds.conf, ~/.gcds.conf
+# search order: $GCDS_CONF, ./gcds.cnf, ./gcds.conf,
+#               ~/.gcds.cnf, ~/.gcds.conf   (3-char .cnf is tried first)
 
 # a TCP host
 host.win.addr  = 192.168.0.20

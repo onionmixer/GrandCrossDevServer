@@ -31,30 +31,45 @@ int xfer_get(gcds_rc_t *rc, const char *rpath, const char *lpath);
 static gcds_kv_t g_kv[CONF_ENT_MAX];
 static long g_nkv;
 
+/* load "<dir><name>" into g_kv (dir may be NULL). 0 on success, -1 if
+   the file is not there. */
+static int try_conf(const char *dir, const char *name)
+{
+    static char path[CONF_VAL_MAX];
+
+    path[0] = '\0';
+    if (dir != NULL)
+        gcds_strlcat(path, dir, CONF_VAL_MAX);
+    gcds_strlcat(path, name, CONF_VAL_MAX);
+    g_nkv = conf_load(path, g_kv, CONF_ENT_MAX);
+    return (g_nkv >= 0) ? 0 : -1;
+}
+
 static int load_conf(void)
 {
     const char *p;
-    static char home[CONF_VAL_MAX];
 
     p = getenv("GCDS_CONF");
     if (p != NULL) {
         g_nkv = conf_load(p, g_kv, CONF_ENT_MAX);
         return (g_nkv >= 0) ? 0 : -1;
     }
-    g_nkv = conf_load("gcds.conf", g_kv, CONF_ENT_MAX);
-    if (g_nkv >= 0)
+    /* 3-char extension first - that is what etc/ and dist/ ship, so the
+       config works with no rename; .conf stays supported. */
+    if (try_conf(NULL, "gcds.cnf") == 0)
+        return 0;
+    if (try_conf(NULL, "gcds.conf") == 0)
         return 0;
     p = getenv("HOME");
     if (p != NULL) {
-        home[0] = '\0';
-        gcds_strlcat(home, p, CONF_VAL_MAX);
-        gcds_strlcat(home, "/.gcds.conf", CONF_VAL_MAX);
-        g_nkv = conf_load(home, g_kv, CONF_ENT_MAX);
-        if (g_nkv >= 0)
+        if (try_conf(p, "/.gcds.cnf") == 0)
+            return 0;
+        if (try_conf(p, "/.gcds.conf") == 0)
             return 0;
     }
     fprintf(stderr,
-            "gcds: no config ($GCDS_CONF, ./gcds.conf, ~/.gcds.conf)\n");
+            "gcds: no config ($GCDS_CONF, ./gcds.cnf, ./gcds.conf, "
+            "~/.gcds.cnf, ~/.gcds.conf)\n");
     return -1;
 }
 
