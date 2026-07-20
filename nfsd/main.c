@@ -89,6 +89,17 @@ static int bind_udp(int port)
     s = socket(AF_INET, SOCK_DGRAM, 0);
     if (s < 0)
         return -1;
+    /* Ask for a bigger receive queue. This server is iterative, so a
+       burst (a build or tar copy issuing many requests at once) can
+       arrive faster than it is drained; without room the kernel drops
+       datagrams silently and the client has to time out and retransmit.
+       The kernel clamps this to net.core.rmem_max, so on a stock Linux
+       the effect is limited - raise that sysctl if bursts still drop
+       (nfsd/README.md). Failure here is not fatal. */
+    {
+        int rcv = 4 * 1024 * 1024;
+        (void)setsockopt(s, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
+    }
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_port = htons((unsigned short)port);

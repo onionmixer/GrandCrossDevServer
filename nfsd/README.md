@@ -100,6 +100,34 @@ GETATTR 트래픽 증가뿐. gnfsd는 sub-second mtime을 보고하므로,
 mount+nfs를 2049에 함께 띄운다. (uid 매핑이 없어 서버 프로세스 uid로
 파일 생성 — 세세한 권한 제어 없음, 설계대로.)
 
+## 부하가 몰릴 때 (빌드/대량 복사)
+
+측정 결과 서버 자체는 병목이 아니다 — 로컬 루프백에서 LOOKUP+GETATTR
+약 4만 req/s, READDIR은 4000 엔트리를 15ms에 처리한다. 실제 NFS
+클라이언트처럼 **동시 미해결 요청 수를 제한한 부하**(8~128)에서는 손실
+0%다.
+
+문제가 되는 조합은 따로 있다:
+
+- **클라이언트의 `soft` + 짧은 timeo** — 한 응답이 밀리면 재시도 대신
+  I/O 실패가 되고, 실패한 마운트가 NeXTSTEP에 남아 이후 재마운트가
+  `Device busy`로 거부된다. → `next-mount.csh` 기본값을
+  **`hard,intr,timeo=30,retrans=5`** 로 바꿨다(실패가 지연으로 바뀜).
+- **`noac`** — 속성 캐시를 꺼서 GETATTR 요청량이 몇 배가 된다. 빌드
+  중에는 특히 불리하므로 **기본에서 뺐고**, 호스트에서 소스를 고치는
+  중이라 즉시 반영이 필요할 때만 `next-mount.csh -n`으로 켠다.
+- **UDP 수신 큐 넘침** — 응답을 기다리지 않고 요청을 쏟아부으면(합성
+  부하) 커널 수신 버퍼가 넘쳐 조용히 버려진다. 서버가 `SO_RCVBUF`를
+  4MB로 요청하지만 **커널이 `net.core.rmem_max`로 캡**한다. 스톡
+  리눅스 기본값(212992)에서 여전히 드롭이 보이면 호스트에서:
+
+  ```sh
+  sudo sysctl -w net.core.rmem_max=8388608
+  ```
+
+  드롭 확인은 `netstat -su`의 *receive buffer errors* 또는
+  `ss -ulnm`의 소켓 `d<n>` 카운터로 한다.
+
 ## 한계 (v1)
 
 - NFSv2/UDP만. NFSv3·TCP·NLM(파일 잠금)은 미구현.
