@@ -68,7 +68,7 @@ print_info() {
     echo "gnfsd: sharing $DIR"
     echo "gnfsd: NFSv2/UDP  portmap=$PORT  mount+nfs=$NFSPORT"
     echo "mount from a client (e.g. NeXTSTEP/OPENSTEP):"
-    echo "  mount -t nfs -o soft,timeo=10 $HOSTIP:$DIR /mnt"
+    echo "  mount -t nfs -o hard,intr,timeo=30,retrans=5 $HOSTIP:$DIR /mnt"
     [ "$PORT" != 111 ] && echo "  (portmap on non-standard $PORT:" \
         "most clients need 111)"
 }
