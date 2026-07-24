@@ -510,6 +510,44 @@ static int nfs_rename(rpc_call_t *c, xdr_t *in, xdr_t *out)
     return 0;
 }
 
+/* LINK: hard-link an existing file into a directory. Implemented for
+   the same reason as READLINK: a procedure the server lacks reads as a
+   dead server to an old client (it retries forever), and tar archives
+   do contain hard links, so extracting one onto the share would hit
+   this. args: {from_fh, {todir_fh, toname}}, reply: status only. */
+static int nfs_link(rpc_call_t *c, xdr_t *in, xdr_t *out)
+{
+    const char *from, *todir;
+    char tname[NAMEMAX + 1];
+    char tpath[1024];
+    unsigned char fh[NFS_FHSIZE];
+    int rc;
+    (void)c;
+
+    if (arg_fh(in, out, &from) < 0)
+        return 0;
+    {   /* target directory fh */
+        const char *tp;
+        if (xdr_get_fixed(in, fh, NFS_FHSIZE) < 0)
+            return -1;
+        tp = fh_to_path(fh);
+        if (tp == NULL) {
+            xdr_put_u32(out, NFSERR_STALE);
+            return 0;
+        }
+        todir = tp;
+    }
+    if (xdr_get_string(in, tname, sizeof(tname)) < 0)
+        return -1;
+    if (join_child(todir, tname, tpath, sizeof(tpath)) < 0) {
+        xdr_put_u32(out, NFSERR_ACCES);
+        return 0;
+    }
+    rc = link(from, tpath);
+    xdr_put_u32(out, rc < 0 ? errno_to_nfs(errno) : NFS_OK);
+    return 0;
+}
+
 /* READLINK: return the target of a symbolic link.
    Without this the client sees NFLNK from LOOKUP but cannot resolve it;
    old clients treat the resulting error as a dead server and retry
@@ -668,6 +706,7 @@ const rpc_route_t GN_ROUTES[] = {
     { NFS_PROG,   NFS_VERS,   9, nfs_create,    1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  10, nfs_remove,    1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  11, nfs_rename,    1 },  /* non-idempotent */
+    { NFS_PROG,   NFS_VERS,  12, nfs_link,      1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  13, nfs_symlink,   1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  14, nfs_mkdir,     1 },  /* non-idempotent */
     { NFS_PROG,   NFS_VERS,  15, nfs_rmdir,     1 },  /* non-idempotent */

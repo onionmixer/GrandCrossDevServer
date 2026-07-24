@@ -13,10 +13,12 @@ GrandCrossDevServer의 공유 스토리지 계층(README 전제 3) — 원격
 
 - **NFSv2 over UDP** (RFC 1094) — 레트로 클라이언트 공통 최저 버전.
 - portmap `GETPORT`(RFC 1057) + MOUNT v1(`MNT`/`UMNT`/`EXPORT`) +
-  NFS v2 프로시저: NULL, GETATTR, SETATTR, LOOKUP, **READLINK**,
-  READ, WRITE, CREATE, REMOVE, RENAME, **SYMLINK**, MKDIR, RMDIR,
-  READDIR, STATFS. (미구현: ROOT/WRITECACHE는 NFSv2에서 쓰이지 않고,
-  LINK(하드링크)는 필요해지면.)
+  NFS v2 프로시저: NULL, GETATTR, SETATTR, LOOKUP, READLINK,
+  READ, WRITE, CREATE, REMOVE, RENAME, LINK, SYMLINK, MKDIR, RMDIR,
+  READDIR, STATFS — **실사용 프로시저 전부**. (ROOT/WRITECACHE는
+  NFSv2 스펙에서 쓰이지 않는 예약 항목.) 미구현 프로시저는 구형
+  클라이언트에 "서버 다운"으로 읽혀 무한 재시도를 유발하므로(READLINK
+  사건) 커버리지 자체가 안정성 요건이다.
 - **두 UDP 포트**: portmapper(기본 111)와 mount+nfs(기본 2049).
   두 소켓 모두 세 프로그램을 처리한다. 포트를 나눈 이유는
   **NeXTSTEP/OPENSTEP 같은 구형 클라이언트가 NFS 요청을 GETPORT
@@ -127,14 +129,11 @@ mount+nfs를 2049에 함께 띄운다. (uid 매핑이 없어 서버 프로세스
   중에는 특히 불리하므로 **기본에서 뺐고**, 호스트에서 소스를 고치는
   중이라 즉시 반영이 필요할 때만 `next-mount.csh -n`으로 켠다.
 - **UDP 수신 큐 넘침** — 응답을 기다리지 않고 요청을 쏟아부으면(합성
-  부하) 커널 수신 버퍼가 넘쳐 조용히 버려진다. 서버가 `SO_RCVBUF`를
-  4MB로 요청하지만 **커널이 `net.core.rmem_max`로 캡**한다. 스톡
-  리눅스 기본값(212992)에서 여전히 드롭이 보이면 호스트에서:
-
-  ```sh
-  sudo sysctl -w net.core.rmem_max=8388608
-  ```
-
+  부하) 커널 수신 버퍼가 넘쳐 조용히 버려진다. **root로 기동하면**(실배포
+  경로 — 포트 111이 어차피 root 요구) `SO_RCVBUFFORCE`로
+  `net.core.rmem_max` 캡을 우회해 4MB가 그대로 적용되므로 sysctl이
+  필요 없다. 비특권 고포트 실행에서만 캡(스톡 기본 212992)이 남으며,
+  그때 드롭이 보이면 `sudo sysctl -w net.core.rmem_max=8388608`.
   드롭 확인은 `netstat -su`의 *receive buffer errors* 또는
   `ss -ulnm`의 소켓 `d<n>` 카운터로 한다.
 
@@ -216,4 +215,3 @@ export를 **한 번만** 훑어 모든 경로를 다시 등록하고 해시로 �
 - 단일 export 디렉토리, uid 매핑/exports 접근제어 없음.
 - READDIR은 호출당 재스캔(O(n^2)). 측정상 4000 엔트리 순회가 15ms라
   실사용에서는 문제되지 않아 최적화하지 않았다.
-- LINK(하드링크) 미구현.

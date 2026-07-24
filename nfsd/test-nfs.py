@@ -178,6 +178,23 @@ ok("READLINK returns the target (b'gn_test.txt')", tgt == b"gn_test.txt")
 r = call(NFSP, 2, 10, rootfh + s_string("gn_link"))
 st, o = r_u32(r, 0); ok("REMOVE gn_link", st == 0)
 
+# LINK (hard link) - same failure class as READLINK: a missing
+# procedure reads as a dead server to an old client, and tar archives
+# contain hard links. args: {from_fh, {todir_fh, toname}}.
+r = call(NFSP, 2, 4, rootfh + s_string("gn_test.txt"))
+st, o = r_u32(r, 0)
+filefh, o = r_fh(r, o)
+r = call(NFSP, 2, 12, filefh + rootfh + s_string("gn_hard"))
+st, o = r_u32(r, 0); ok("LINK gn_hard -> gn_test.txt", st == 0)
+r = call(NFSP, 2, 4, rootfh + s_string("gn_hard"))
+st, o = r_u32(r, 0); ok("LOOKUP gn_hard status=0", st == 0)
+r = call(NFSP, 2, 1, filefh)                # GETATTR original
+st, o = r_u32(r, 0)
+nlink = struct.unpack(">I", r[o + 8:o + 12])[0]   # fattr: type, mode, nlink
+ok("GETATTR nlink==2 after LINK", nlink == 2)
+r = call(NFSP, 2, 10, rootfh + s_string("gn_hard"))
+st, o = r_u32(r, 0); ok("REMOVE gn_hard", st == 0)
+
 # REMOVE / RMDIR cleanup
 r = call(NFSP, 2, 10, rootfh + s_string("gn_test.txt"))
 st, o = r_u32(r, 0); ok("REMOVE gn_test.txt", st == 0)
