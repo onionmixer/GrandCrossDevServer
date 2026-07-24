@@ -83,14 +83,26 @@ umount $mountpt >& /dev/null
 if ($status != 0) then
     umount ${server}:${export} >& /dev/null
 endif
-mount |& grep $mountpt >& /dev/null
+mount |& grep "on $mountpt " >& /dev/null
 if ($status == 0) then
     echo "next-mount: $mountpt is still mounted (busy)."
-    echo "  something is using it - check with:  ps -ax"
-    echo "  a shell sitting in $mountpt is the usual cause; cd out of it."
+    echo "  a shell sitting in $mountpt is one cause (ps -ax; cd out of it),"
+    echo "  but it can also be a leaked kernel reference no process holds -"
+    echo "  then only a reboot frees THIS mountpoint. The mount itself keeps"
+    echo "  working; only umount/remount is blocked."
     if (! $unmount_only) then
-        echo "  not remounting while busy."
-        exit 1
+        # Mounting OVER the wedged point is a trap: it returns status 0
+        # but is a no-op (no remount, no cache flush). So fall back to a
+        # fresh mountpoint instead - same export, clean cache, verified
+        # to work while the old point stays wedged.
+        set mountpt = ${mountpt}2
+        echo "  falling back to $mountpt (old mount stays until reboot)."
+        umount $mountpt >& /dev/null
+        mount |& grep "on $mountpt " >& /dev/null
+        if ($status == 0) then
+            echo "next-mount: $mountpt is busy too - giving up. reboot to clean up."
+            exit 1
+        endif
     endif
 endif
 

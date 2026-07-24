@@ -96,6 +96,14 @@ mount -t nfs -o hard,intr,timeo=30,retrans=5 <서버IP>:<export> /nfstest
 | `retrans` | `5` | 재전송 횟수 |
 | `noac` | (선택) | 속성 캐시를 꺼서 호스트 편집이 즉시 보인다. 대신 GETATTR 요청이 몇 배로 늘어 빌드 중엔 불리하므로 **평소엔 빼고**, 소스를 고치는 중일 때만 `-n`으로 켠다 |
 
+**`Device busy`로 umount이 안 될 때** (붙드는 프로세스가 없는데도): 구형
+클라이언트 커널의 고아 vnode 참조로, 그 마운트포인트는 재부팅 전까지 못
+비운다. 단 **I/O는 계속 정상**이고, 함정 하나 — wedge된 지점 위에 mount를
+다시 얹으면 **no-op인데 status 0**이 돌아온다(재마운트도 캐시 flush도 안
+된 가짜 성공). 복구는 재부팅이 아니라 **새 마운트포인트에 같은 export를
+다시 마운트**하는 것: 즉시 동작하고 속성 캐시도 새것이다(실기 검증).
+`next-mount.csh`가 busy를 감지하면 이 폴백을 자동 수행한다.
+
 NeXTSTEP의 `mount`는 4.2BSD/SunOS 계열 옵션을 받는다. 위 조합은 실기에서
 검증됐다.
 

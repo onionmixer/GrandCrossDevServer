@@ -165,6 +165,12 @@ mount+nfs를 2049에 함께 띄운다. (uid 매핑이 없어 서버 프로세스
 `soft` 마운트에서는 I/O 실패 + 마운트 잔류(`Device busy`)로 이어졌다.
 실기에서 그대로 재현됐다.
 
+`Device busy` 잔류가 프로세스 없이도 지속되면 클라이언트 커널의 고아
+vnode 참조다 — 서버 재시작으로는 안 풀리고(서버 무관), 그 지점 위의
+mount는 status 0을 주는 no-op이라 가짜 성공이다. **새 마운트포인트에
+다시 마운트**하면 재부팅 없이 복구된다(`next-mount.csh`가 자동 폴백).
+진단 전말은 NeXT_DRIVER 워크스페이스의 FIX_gnfsd.md.
+
 소스 트리에는 심링크가 흔하다(검증에 쓴 export에 5개, 그중
 `ref/openstep/headers/usr/include`는 빌드가 지나가는 경로). tar나 빌드가
 트리를 훑다 이걸 만나면 실패하는 것이 당연했다.
