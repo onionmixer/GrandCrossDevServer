@@ -42,9 +42,11 @@
 
 **부속 산출물**
 - 회귀 테스트(test/run.sh, 46 케이스).
-- 자작 NFSv2 서버(gnfsd): ONC RPC/XDR + MOUNT + NFS v2(심링크
-  READLINK/SYMLINK 포함), DRC, sub-second mtime, 권한 정규화,
-  **재시작을 넘기는 파일 핸들**. OPENSTEP 실기 mount 검증.
+- 자작 NFSv2 서버(gnfsd): ONC RPC/XDR + MOUNT + NFS v2 **실사용
+  프로시저 전부**(LINK/READLINK/SYMLINK 포함), DRC, sub-second mtime,
+  권한 정규화, **재시작을 넘기는 파일 핸들**, root 기동 시 수신버퍼
+  8MB(SO_RCVBUFFORCE). OPENSTEP 실기 검증 + 스트레스(`make stress`:
+  LINK churn·쓰기 무결성) 통과.
 - dist/ 배포 바이너리 6/6(복사→실행, git 추적) + win32/dos 크로스
   툴체인 편입(PLAN_06).
 - gcdslog: 시리얼 콘솔 커널 패닉 캡처 도구(tools/gcdslog.c, Linux 호스트

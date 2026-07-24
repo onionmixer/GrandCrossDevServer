@@ -268,8 +268,11 @@ sudo ./nfsd/serve.sh <공유폴더>          # portmap 111 + nfs 2049
     즉시 반영이 필요할 때만(요청량이 늘어 빌드 중엔 불리)
   - `/next-mount.csh -u` — 언마운트
 - gnfsd를 재시작해도 **재마운트할 필요가 없다**(파일 핸들이 재시작을
-  넘긴다). 옵션의 의미와 선택 이유는 doc/next.md의 표, 서버 쪽 상세는
-  nfsd/README.md.
+  넘긴다).
+- umount이 `Device busy`로 막히면(붙드는 프로세스 없음) 클라이언트 커널
+  문제다 — 재부팅 말고 **다른 마운트포인트에 다시 마운트**하면 된다
+  (`next-mount.csh`가 자동 폴백). 옵션의 의미는 doc/next.md의 표,
+  서버 쪽 상세·장애 전말은 nfsd/README.md.
 
 ## 12. 직접 빌드 (네이티브 · 크로스)
 
