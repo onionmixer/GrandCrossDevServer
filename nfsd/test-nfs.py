@@ -120,6 +120,58 @@ eof, o = r_u32(r, o)
 ok("READDIR sees created file+dir",
    "gn_test.txt" in names and "gn_test_dir" in names)
 
+# READDIR honors `count` (regression for the 2026-08-16 decode bug):
+# a directory larger than `count` must split across rounds, each round's
+# directory data <= count, always making progress, ending in a clean eof.
+# Before the fix the server ignored count and returned up to 7500 bytes,
+# which a NeXTSTEP client (count=4096) could not decode.
+# mode 0755 so the directory is searchable/writable (0644 would have no
+# execute bit, and creating files inside it would then fail EACCES).
+dsattr = struct.pack(">IIIIIIII", 0o755, 0xffffffff, 0xffffffff,
+                     0, 0xffffffff, 0, 0xffffffff, 0)
+r = call(NFSP, 2, 14, rootfh + s_string("gn_rddir") + dsattr)
+st, _o = r_u32(r, 0); ok("MKDIR gn_rddir", st == 0)
+r = call(NFSP, 2, 4, rootfh + s_string("gn_rddir"))
+st, o = r_u32(r, 0); rddirfh, o = r_fh(r, o)
+NFILES = 200
+for i in range(NFILES):
+    call(NFSP, 2, 9, rddirfh + s_string("f%05d" % i) + sattr)
+RDCOUNT = 1024
+seen = set(); rounds = 0; cookie = 0
+over_count = False; empty_nonfinal = False; eof = 0
+while rounds <= 60:
+    r = call(NFSP, 2, 16, rddirfh + struct.pack(">II", cookie, RDCOUNT))
+    st, _o = r_u32(r, 0)
+    o = 4; n_this = 0
+    while True:
+        pos = o                       # offset of the follows/terminator word
+        follows, o = r_u32(r, o)
+        if follows == 0:
+            break
+        fileid, o = r_u32(r, o)
+        nm, o = r_string(r, o)
+        ck, o = r_u32(r, o)
+        seen.add(nm.decode()); cookie = ck; n_this += 1
+    entry_bytes = pos - 4             # bytes of directory data this round
+    eof, o = r_u32(r, o)
+    rounds += 1
+    if entry_bytes > RDCOUNT:
+        over_count = True
+    if n_this == 0 and eof == 0:
+        empty_nonfinal = True
+    if eof == 1:
+        break
+want = set("f%05d" % i for i in range(NFILES))
+ok("READDIR keeps each round's data within count", not over_count)
+ok("READDIR never returns an empty non-eof round", not empty_nonfinal)
+ok("READDIR splits a big dir across multiple rounds", rounds > 1)
+ok("READDIR returns every entry and ends at eof",
+   want.issubset(seen) and eof == 1)
+for i in range(NFILES):
+    call(NFSP, 2, 10, rddirfh + s_string("f%05d" % i))
+r = call(NFSP, 2, 15, rootfh + s_string("gn_rddir"))
+st, _o = r_u32(r, 0); ok("RMDIR gn_rddir", st == 0)
+
 # STATFS
 r = call(NFSP, 2, 17, rootfh)
 st, o = r_u32(r, 0); ok("STATFS", st == 0)

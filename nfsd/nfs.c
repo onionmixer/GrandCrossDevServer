@@ -608,15 +608,23 @@ static int nfs_symlink(rpc_call_t *c, xdr_t *in, xdr_t *out)
     return 0;
 }
 
+/* Ceiling on the READDIR reply's directory data. Honoring the client's
+   `count` is the primary bound; this caps a client that sends a count
+   larger than it can actually decode. 4096 keeps the datagram
+   (data + ~36B header) well under the ~4960B limit measured for the
+   NeXTSTEP client, for any requested count. */
+#define RD_MAXDATA 4096
+
 static int nfs_readdir(rpc_call_t *c, xdr_t *in, xdr_t *out)
 {
     const char *path;
     uint32_t cookie, count;
     DIR *d;
-    struct dirent *de;
+    struct dirent *de = NULL;
     long idx;
-    long emitted;
-    (void)c; (void)count;
+    size_t dirbytes;
+    size_t cap;
+    (void)c;
 
     if (arg_fh(in, out, &path) < 0)
         return 0;
@@ -629,37 +637,53 @@ static int nfs_readdir(rpc_call_t *c, xdr_t *in, xdr_t *out)
     }
     xdr_put_u32(out, NFS_OK);
 
-    /* cookie = 1-based index of the last entry already returned. we
-       skip that many, then emit until the reply nears the UDP cap.
-       O(n^2) over calls but fine for a lightweight server. entries
-       skipped for size are re-read next call (cookie < their idx). */
+    /* RFC 1094: the reply's directory data must not exceed `count`
+       bytes. NeXTSTEP requests count=4096 and cannot decode a larger
+       reply ("RPC: Can't decode result"). Honor count; clamp a huge
+       count to RD_MAXDATA so it cannot overrun the output buffer; and
+       always emit at least one entry so a tiny count still progresses.
+       cookie = 1-based index of the last entry already returned; we
+       skip that many, then emit within the cap. O(n^2) over calls but
+       fine for a lightweight server. */
+    cap = count;
+    if (cap > RD_MAXDATA)
+        cap = RD_MAXDATA;
+
     idx = 0;
-    emitted = 0;
-    (void)emitted;
-    while ((de = readdir(d)) != NULL) {
+    dirbytes = 0;
+    for (;;) {
         struct stat st;
         char child[1024];
-        size_t need_bytes;
+        size_t namelen, need_bytes;
 
+        errno = 0;
+        de = readdir(d);
+        if (de == NULL)
+            break;                          /* end-of-dir or error (errno) */
         idx++;
         if ((uint32_t)idx <= cookie)
             continue;
-        need_bytes = 4 + 4 + 4 + strlen(de->d_name) + 4 + 4;
-        if (xdr_len(out) + need_bytes > 7500)
-            break;                          /* stop; not eof */
+        namelen = strlen(de->d_name);
+        /* per-entry XDR: value-follows + fileid + name<> + cookie */
+        need_bytes = 4 + 4 + (4 + ((namelen + 3u) & ~(size_t)3u)) + 4;
+        if (dirbytes > 0 && dirbytes + need_bytes > cap)
+            break;                          /* more remain; not eof */
         if (join_child(path, de->d_name, child, sizeof(child)) < 0)
             continue;
         if (lstat(child, &st) < 0)
             continue;
         xdr_put_u32(out, 1);                        /* value follows */
         xdr_put_u32(out, (uint32_t)st.st_ino);      /* fileid */
-        xdr_put_bytes(out, de->d_name,
-                      (uint32_t)strlen(de->d_name)); /* name */
+        xdr_put_bytes(out, de->d_name, (uint32_t)namelen); /* name */
         xdr_put_u32(out, (uint32_t)idx);            /* cookie */
-        emitted++;
+        dirbytes += need_bytes;
     }
     xdr_put_u32(out, 0);                    /* no more entries */
-    xdr_put_u32(out, (de == NULL) ? 1 : 0);/* eof */
+    /* eof only when readdir reached the true end (NULL, errno clear).
+       NULL with errno set = a read error mid-scan: report not-eof so the
+       client re-asks from its last cookie instead of losing the tail.
+       A size-cap break leaves de != NULL -> eof=0. */
+    xdr_put_u32(out, (de == NULL && errno == 0) ? 1 : 0);
     closedir(d);
     return 0;
 }
