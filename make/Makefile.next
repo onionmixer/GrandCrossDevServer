@@ -1,6 +1,11 @@
 # Makefile.next - NeXTSTEP / OPENSTEP daemon build (cc, gcc 2.7).
 #   make -f make/Makefile.next          # builds ./gcdsd
 #
+# Arch-agnostic: build natively on each OPENSTEP CPU (i386/m68k/sparc).
+# GCDSP is a text protocol (endian-clean) and gnext.h is CPU-independent,
+# so no arch flags are needed; os_tag() self-labels the arch from the
+# compiler's predefined macro (PLAN_07). Deploy to dist/next/<arch>/.
+#
 # NeXTSTEP is 4.3BSD-based: no sys/select.h, union-wait W* macros,
 # missing POSIX types, waitpid/setpgid spelled wait4/setpgrp. The
 # gnext.h shim (under -DGCDS_NEXT) covers all of those.

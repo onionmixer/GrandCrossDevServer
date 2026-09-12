@@ -3,10 +3,22 @@
 4.3BSD 파생이라 POSIX(2001) 이전 세대. 데몬(gcdsd)만 빌드하며
 클라이언트(gcds)는 Linux 호스트에서 돈다.
 
-## 검증 환경
+## 검증 환경 / 아키텍처
 
-**OPENSTEP** (NeXT Mach), i386, **NeXT cc = gcc 2.7.2.1**.
-프로젝트가 목표한 gcc 2.x 하한대의 실기 검증.
+OPENSTEP/NeXTSTEP은 여러 CPU에서 돈다. GCDSP는 텍스트 프로토콜이라
+엔디안 무관이고 `gnext.h` shim도 CPU 독립적이라 **동일 소스가 세
+아키텍처에서 그대로 빌드·동작**한다(PLAN_07). 바이너리는 각 머신에서
+네이티브 `cc`로 빌드한다.
+
+| arch | 하드웨어 | cc | 엔디안 | 검증 상태 |
+|------|----------|----|--------|-----------|
+| i386 | Intel OPENSTEP (NeXT Mach) | gcc 2.7.2.1 | little | ✅ 실기 |
+| m68k | NeXT 흑箱 (68040) | gcc 2.5.x대(예상) | big | ⏳ 예정(Previous 에뮬) |
+| sparc | Sun OPENSTEP | OPENSTEP cc | big | ⏳ 예정(HW 확보 시) |
+
+greeting ostag가 아키텍처를 자동 보고한다(`openstep-i386`/`-m68k`/`-sparc`
+/`-hppa`). cc 프리디파인드 매크로(`__i386__` 등)로 판별하므로 Makefile
+변경이 필요 없다.
 
 ## 빌드
 

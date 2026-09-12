@@ -105,7 +105,23 @@ int run_command(const char *cmdline, const gcds_env_t *env, long nenv,
 const char *os_tag(void)
 {
 #ifdef GCDS_OSTAG
-    return GCDS_OSTAG;
+    return GCDS_OSTAG;              /* explicit override wins */
+#elif defined(GCDS_NEXT)
+    /* NeXTSTEP/OPENSTEP: report the CPU the native cc built for, so a
+       client sees which arch it is talking to. The compiler defines
+       exactly one of these, so each native build self-labels without a
+       Makefile change (PLAN_07). */
+#  if   defined(__m68k__)
+    return "openstep-m68k";
+#  elif defined(__i386__)
+    return "openstep-i386";
+#  elif defined(__sparc__)
+    return "openstep-sparc";
+#  elif defined(__hppa__)
+    return "openstep-hppa";
+#  else
+    return "openstep";
+#  endif
 #else
     return "posix";
 #endif

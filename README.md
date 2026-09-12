@@ -85,7 +85,7 @@ Linux 호스트에서 이기종 원격 머신(Windows, macOS, BeOS, NeXTSTEP 등
 | MS-DOS(시리얼) | Makefile.dos | ✅ DOSBox-X | 시리얼 | FOSSIL/int14, 비동기 |
 | MS-DOS(TCP) | Makefile.dtcp | ✅ DOSBox-X | TCP | Watt-32, 패킷 드라이버 |
 | BeOS/Haiku | Makefile.posix `LIBS=-lnetwork` | ✅ 실기(Haiku, SSH) | TCP·시리얼 | gcc 2.95, BeOS 세대 |
-| NeXTSTEP/OPENSTEP | Makefile.next | ✅ 실기(OPENSTEP, telnet) | TCP·시리얼 | NeXT cc 2.7, LIVE·RUNI·sgtty |
+| NeXTSTEP/OPENSTEP | Makefile.next | ✅ 실기(i386, telnet) / m68k·sparc 예정 | TCP·시리얼 | 아키텍처별 네이티브 빌드(PLAN_07), LIVE·RUNI·sgtty |
 
 - macOS·Haiku·NeXTSTEP·Windows는 실기, MS-DOS는 DOSBox-X로 검증됐다.
   각 플랫폼 상세는 `doc/*.md`.
