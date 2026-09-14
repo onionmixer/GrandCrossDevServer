@@ -53,9 +53,9 @@
   전용). QEMU Linux 게스트 실제 커널 패닉 캡처로 검증(doc/panic-capture.md).
 
 ## 잔여 작업
-- [ ] **OPENSTEP 다중 아키텍처**(PLAN_07): i386(완료) 외 m68k(NeXT 흑箱)·
-      sparc. Phase 0(동작 불변 리팩터 — dist/next/<arch>/, os_tag 아키텍처
-      자동화, 문서) 완료. m68k/sparc 빌드·검증은 하드웨어/에뮬 확보 시.
+- [ ] **OPENSTEP 다중 아키텍처**(PLAN_07): i386·**m68k 완료**, sparc 남음.
+      Phase 0(리팩터) + Phase 1(m68k 실기 빌드·검증, NeXTstation) 완료.
+      sparc는 하드웨어 확보 시(Phase 2).
 - [ ] (선택) rexec 어댑터, `gcds --all` 병렬, 고전 Mac OS/OS2/AmigaOS
       시리얼 우선 이식, 시리얼 프레임 CRC 확장(capability `CRC`).
 

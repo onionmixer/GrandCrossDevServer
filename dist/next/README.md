@@ -8,7 +8,7 @@ dist/next/
   gcdsd.cnf        공통 설정 (arch 무관)
   next-mount.csh   Linux gnfsd 공유를 OPENSTEP에 NFS mount (호스트 소스 전달용)
   i386/gcdsd       Intel OPENSTEP
-  m68k/gcdsd       NeXT 흑箱(68040)   ← 빌드 예정(PLAN_07)
+  m68k/gcdsd       NeXT 흑箱(68040)
   sparc/gcdsd      Sun OPENSTEP        ← 빌드 예정(PLAN_07)
 ```
 
