@@ -34,6 +34,9 @@
 - NeXTSTEP/OPENSTEP: 실기(NeXT cc 2.7.2.1), **LIVE/RUNI/K + sgtty
   시리얼 포함 전 기능 통과, INTERACTIVE 실기 확정**. gnext.h shim,
   ser_next.c(sgtty). 소스는 gnfsd NFS 공유로 전달.
+  **다중 아키텍처(PLAN_07): i386·m68k 실기 빌드·검증 완료** — 두 dist
+  바이너리가 각각 `openstep-i386`/`openstep-m68k` ostag 보고(커밋
+  5def199·d69766c·140a842). GCDSP 텍스트 프로토콜이라 빅엔디안 무수정 동작.
 
 **대화형 버퍼링 실측** (PLAN_04 §5)
 - 전송 계층은 실시간(첫 줄 +0.1s). 지연이 보이는 경우는 **자식
@@ -53,9 +56,10 @@
   전용). QEMU Linux 게스트 실제 커널 패닉 캡처로 검증(doc/panic-capture.md).
 
 ## 잔여 작업
-- [ ] **OPENSTEP 다중 아키텍처**(PLAN_07): i386·**m68k 완료**, sparc 남음.
-      Phase 0(리팩터) + Phase 1(m68k 실기 빌드·검증, NeXTstation) 완료.
-      sparc는 하드웨어 확보 시(Phase 2).
+- [ ] **OPENSTEP 다중 아키텍처**(PLAN_07): **i386·m68k 완료(ostag 정확),
+      sparc만 남음.** Phase 0(리팩터·os_tag·dist/next/<arch>/) + Phase 1
+      (i386 재빌드로 `openstep-i386`화 / m68k 실기 빌드·검증) 완료.
+      sparc(Phase 2)는 하드웨어 확보 시.
 - [ ] (선택) rexec 어댑터, `gcds --all` 병렬, 고전 Mac OS/OS2/AmigaOS
       시리얼 우선 이식, 시리얼 프레임 CRC 확장(capability `CRC`).
 
