@@ -13,9 +13,9 @@ OPENSTEP/NeXTSTEP용 `gcdsd`를 현행 **i386** 외에 **m68k**(NeXT 흑箱,
 > `nstationonion`(192.168.1.228, 68040)에서 gnfsd NFS로 소스 전달, 네이티브
 > cc(gcc 2.7.2.1)로 빌드(Mach-O m68k), `gcds --ping`→`openstep-m68k`, 원격
 > RUN·exit code·**네이티브 cc 컴파일 roundtrip**까지 통과. **엔디안-클린
-> 전제가 빅엔디안 실기로 증명됨.** `dist/next/m68k/gcdsd` 수집. 남은 것:
-> sparc(Phase 2, HW 확보 시), i386 재빌드로 ostag를 `openstep-i386`화(현
-> `dist/next/i386/gcdsd`는 pre-os_tag 빌드라 `posix` 보고).
+> 전제가 빅엔디안 실기로 증명됨.** `dist/next/m68k/gcdsd` 수집. **i386 재빌드도 완료(2026-09-15)** —
+> `dist/next/i386/gcdsd`가 이제 `openstep-i386` 보고(실기 .18 재빌드·검증).
+> **남은 것: sparc(Phase 2, HW 확보 시).**
 
 ## 0. 핵심 결론 (먼저)
 
