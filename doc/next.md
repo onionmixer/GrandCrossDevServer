@@ -14,11 +14,19 @@ OPENSTEP/NeXTSTEP은 여러 CPU에서 돈다. GCDSP는 텍스트 프로토콜이
 |------|----------|----|--------|-----------|
 | i386 | Intel OPENSTEP (NeXT Mach) | gcc 2.7.2.1 | little | ✅ 실기 |
 | m68k | NeXT 흑箱 (68040) | gcc 2.7.2.1 | big | ✅ 실기(NeXTstation `nstationonion`) |
-| sparc | Sun OPENSTEP | OPENSTEP cc | big | ⏳ 예정(HW 확보 시) |
+| sparc | Sun OPENSTEP | i386 cc `-arch sparc`(cross) | big | ⚠ cross-build만(런타임 미검증, HW 확보 시) |
 
 greeting ostag가 아키텍처를 자동 보고한다(`openstep-i386`/`-m68k`/`-sparc`
 /`-hppa`). cc 프리디파인드 매크로(`__i386__` 등)로 판별하므로 Makefile
 변경이 필요 없다.
+
+**Cross-build**: NeXT 다중 아키텍처 툴체인이 깔린 머신(예: i386 .18에
+`/lib/{i386,m68k,sparc}/specs` 존재)에서는 `cc -arch <arch>`로 다른
+아키텍처 바이너리를 만든다. sparc gcdsd는 이 방식으로 i386에서
+cross-build했다: `make -f make/Makefile.next CC='cc -arch sparc'` →
+Mach-O SPARC(cputype 14), ostag `openstep-sparc`. **컴파일·링크는 성공하고
+엔디안 정합성은 m68k(빅엔디안) 실기 검증으로 대리 입증되나, sparc 실기에서
+실행 검증은 아직 못 했다**(하드웨어 확보 시).
 
 ## 빌드
 

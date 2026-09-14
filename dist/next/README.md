@@ -9,7 +9,7 @@ dist/next/
   next-mount.csh   Linux gnfsd 공유를 OPENSTEP에 NFS mount (호스트 소스 전달용)
   i386/gcdsd       Intel OPENSTEP
   m68k/gcdsd       NeXT 흑箱(68040)
-  sparc/gcdsd      Sun OPENSTEP        ← 빌드 예정(PLAN_07)
+  sparc/gcdsd      Sun OPENSTEP        (i386에서 cross-build, sparc 실기 런타임 미검증)
 ```
 
 ## 설치 (copy & go)
