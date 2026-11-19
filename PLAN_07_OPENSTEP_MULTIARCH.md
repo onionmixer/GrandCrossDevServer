@@ -11,7 +11,7 @@ OPENSTEP/NeXTSTEP용 `gcdsd`를 현행 **i386** 외에 **m68k**(NeXT 흑箱,
 
 > 상태: **Phase 1(m68k) 완료(2026-09-14).** Phase 0(리팩터·os_tag·문서,
 > 호스트 회귀 46/46) + **Phase 1: m68k 실기 빌드·검증 완료** — NeXTstation
-> `nstationonion`(192.168.1.228, 68040)에서 gnfsd NFS로 소스 전달, 네이티브
+> (68040)에서 gnfsd NFS로 소스 전달, 네이티브
 > cc(gcc 2.7.2.1)로 빌드(Mach-O m68k), `gcds --ping`→`openstep-m68k`, 원격
 > RUN·exit code·**네이티브 cc 컴파일 roundtrip**까지 통과. **엔디안-클린
 > 전제가 빅엔디안 실기로 증명됨.** `dist/next/m68k/gcdsd` 수집. **i386 재빌드 완료(2026-09-15)** —
@@ -136,7 +136,7 @@ dist/next/
 
 | arch | 검증 수단 | 상태 |
 |------|-----------|------|
-| i386 | 실기 `192.168.1.18` | ✓ 보유 |
+| i386 | 실기(i386 OPENSTEP 머신) | ✓ 보유 |
 | m68k | **Previous 에뮬레이터**(NeXT 68040 정밀 에뮬, NeXTSTEP/OPENSTEP 구동) | ROM·설치미디어 확보 필요 |
 | sparc | **빌드: i386(.18) cross(`cc -arch sparc`) 완료**. 런타임: NeXTSTEP/OPENSTEP sparc 실기(에뮬 빈약) 필요 |
 
@@ -170,7 +170,7 @@ dist/next/
   - **검증: i386 실기 회귀** — 동작·greeting이 이전과 동일(ostag만
     `openstep-i386`로). 프로토콜·기능 불변 확인.
 - **Phase 1 — m68k (빅엔디안 실증) ✅ 완료(2026-09-14)**
-  - 실기 NeXTstation `nstationonion`(192.168.1.228) 사용(에뮬 불필요).
+  - 실기 NeXTstation(68040) 사용(에뮬 불필요).
   - gnfsd NFS로 소스 전달, `make -f make/Makefile.next` → Mach-O m68k 빌드
     (경고 2건 무해: gnext.h W* 매크로가 이 OPENSTEP의 wait.h와 중복 정의,
     net.c send const). cc = gcc 2.7.2.1(i386과 동일).

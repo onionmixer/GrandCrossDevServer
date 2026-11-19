@@ -13,7 +13,7 @@ OPENSTEP/NeXTSTEP은 여러 CPU에서 돈다. GCDSP는 텍스트 프로토콜이
 | arch | 하드웨어 | cc | 엔디안 | 검증 상태 |
 |------|----------|----|--------|-----------|
 | i386 | Intel OPENSTEP (NeXT Mach) | gcc 2.7.2.1 | little | ✅ 실기 |
-| m68k | NeXT 흑箱 (68040) | gcc 2.7.2.1 | big | ✅ 실기(NeXTstation `nstationonion`) |
+| m68k | NeXT 흑箱 (68040) | gcc 2.7.2.1 | big | ✅ 실기(NeXTstation) |
 | sparc | Sun OPENSTEP | i386 cc `-arch sparc`(cross) | big | ⚠ cross-build만(런타임 미검증, HW 확보 시) |
 
 greeting ostag가 아키텍처를 자동 보고한다(`openstep-i386`/`-m68k`/`-sparc`

@@ -1,7 +1,7 @@
 # 수정계획: gnfsd READDIR가 클라이언트 `count`를 무시하는 버그
 
 2026-08-16 인시던트(`.../openstep-sdl20/notes/GNFSD_NFS_REBUILD_INCIDENT_20260816.md`)의
-`NFS readdir failed for server 192.168.1.16: RPC: Can't decode result`를
+`NFS readdir failed for server 192.0.2.10: RPC: Can't decode result`를
 계측으로 규명하고 고치기 위한 구체 계획. 이 문서는 codex 재검토 대상이다.
 
 > 상태: **수정 적용·실기 검증 완료 (2026-08-17).** 원인·측정치 확정(§2,§3),
@@ -289,8 +289,8 @@ static int nfs_readdir(rpc_call_t *c, xdr_t *in, xdr_t *out)
 **결론: 인시던트(`RPC: Can't decode result`) 종단 해소. 회귀 없음.**
 
 > 운영 메모: gnfsd는 export 경로를 **정확 문자열**로 매칭한다(`mnt_mnt`).
-> gnfsd를 `/mnt/USERS/.../NeXT_DRIVER`로 띄웠으면 클라이언트도 그 경로로
-> 마운트해야 한다(같은 inode라도 `/home/onion/Workspace/NeXT_DRIVER`로
+> gnfsd를 `/data/.../NeXT_DRIVER`로 띄웠으면 클라이언트도 그 경로로
+> 마운트해야 한다(같은 inode라도 `/home/<user>/.../NeXT_DRIVER`로
 > 요청하면 ACCES). tools의 site.conf와 serve.sh 인자 경로를 일치시킬 것.
 
 ## 8. 롤아웃
