@@ -71,6 +71,12 @@ typedef struct {
 /* enable per-request logging to stderr */
 void rpc_set_verbose(int on);
 
+/* background work the server loop interleaves with requests: while
+   pending() is true the loop stops blocking in select() and calls
+   step() (one bounded slice) after every few requests, so neither the
+   work nor the clients starve. Used for the handle-table walk. */
+void rpc_set_background(int (*pending)(void), void (*step)(void));
+
 /* run the UDP server loop over one or more already-bound sockets,
    dispatching to routes[0..n). blocks forever. */
 void rpc_serve(const int *socks, int nsocks,

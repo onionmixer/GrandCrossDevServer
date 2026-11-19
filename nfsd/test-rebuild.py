@@ -31,18 +31,25 @@ def make_tree(root, n):
 class Client:
     def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.s.settimeout(120)
         self.xid = int(time.time()) & 0xFFFFFF
 
     def call(self, prog, proc, args):
+        # retransmit like a real client: an old-handle request is dropped
+        # until the walk reaches it. A short interval keeps the timing fine.
         self.xid += 1
         m = struct.pack(">IIIIII", self.xid, 0, 2, prog, 1 if prog == 100005 else 2,
                         proc) + struct.pack(">II", 0, 0) * 2 + args
-        self.s.sendto(m, ("127.0.0.1", PORT))
+        end = time.time() + 120
         while True:
-            d, _ = self.s.recvfrom(65536)
-            if struct.unpack(">I", d[:4])[0] == self.xid:
-                break
+            self.s.sendto(m, ("127.0.0.1", PORT))
+            self.s.settimeout(0.01)
+            try:
+                d, _ = self.s.recvfrom(65536)
+                if struct.unpack(">I", d[:4])[0] == self.xid:
+                    break
+            except socket.timeout:
+                if time.time() > end:
+                    raise
         vl = struct.unpack(">I", d[16:20])[0]
         r = d[24 + vl:]
         return struct.unpack(">I", r[:4])[0], r[4:]

@@ -11,6 +11,20 @@
 static int g_verbose = 0;
 void rpc_set_verbose(int on) { g_verbose = on; }
 
+static int  (*g_bg_pending)(void);
+static void (*g_bg_step)(void);
+
+void rpc_set_background(int (*pending)(void), void (*step)(void))
+{
+    g_bg_pending = pending;
+    g_bg_step = step;
+}
+
+static int bg_pending(void)
+{
+    return g_bg_pending != NULL && g_bg_pending();
+}
+
 /* ---- duplicate request cache (DRC) ------------------------------
  * UDP has no delivery guarantee, so clients retransmit. Re-running
  * a non-idempotent op (CREATE/REMOVE/RENAME/...) on a retransmit
@@ -224,8 +238,14 @@ static void handle_one(int sock, unsigned char *inbuf, ssize_t n,
     if (match != NULL) {
         if (rpc_reply_success(&out, c.xid) < 0)
             return;
-        if (match->fn(&c, &in, &out) < 0)
-            return;             /* handler asked to drop */
+        if (match->fn(&c, &in, &out) < 0) {
+            /* handler asked to drop: bad args, or a handle the walk
+               has not reached yet (the retransmit gets the answer).
+               Not cached, so the retransmit really is re-run. */
+            if (g_verbose)
+                fprintf(stderr, "gnfsd:   (dropped xid=%u)\n", c.xid);
+            return;
+        }
     } else if (!prog_ok) {
         rpc_reply_accept_err(&out, c.xid, RPC_PROG_UNAVAIL);
     } else {
@@ -250,6 +270,9 @@ static void handle_one(int sock, unsigned char *inbuf, ssize_t n,
            (struct sockaddr *)peer, plen);
 }
 
+/* requests handled between two background slices */
+#define RPC_BG_BATCH 8
+
 void rpc_serve(const int *socks, int nsocks,
                const rpc_route_t *routes, int nroutes)
 {
@@ -262,29 +285,44 @@ void rpc_serve(const int *socks, int nsocks,
             maxfd = socks[i];
 
     for (;;) {
-        fd_set rd;
-        int r;
+        int bg = bg_pending(), handled = 0;
 
-        FD_ZERO(&rd);
-        for (i = 0; i < nsocks; i++)
-            FD_SET(socks[i], &rd);
-        r = select(maxfd + 1, &rd, NULL, NULL, NULL);
-        if (r <= 0)
-            continue;
-        for (i = 0; i < nsocks; i++) {
-            struct sockaddr_in peer;
-            socklen_t plen;
-            ssize_t n;
+        /* serve what is waiting: block when idle, but only poll while
+           background work is pending - and then at most a batch, so
+           a steady stream of requests cannot starve the work */
+        do {
+            fd_set rd;
+            struct timeval tv;
+            int r;
 
-            if (!FD_ISSET(socks[i], &rd))
-                continue;
-            plen = sizeof(peer);
-            n = recvfrom(socks[i], inbuf, sizeof(inbuf), 0,
-                         (struct sockaddr *)&peer, &plen);
-            if (n < 0)
-                continue;
-            handle_one(socks[i], inbuf, n, &peer, plen,
-                       routes, nroutes);
-        }
+            FD_ZERO(&rd);
+            for (i = 0; i < nsocks; i++)
+                FD_SET(socks[i], &rd);
+            tv.tv_sec = 0;
+            tv.tv_usec = 0;
+            r = select(maxfd + 1, &rd, NULL, NULL, bg ? &tv : NULL);
+            if (r <= 0)
+                break;
+            for (i = 0; i < nsocks; i++) {
+                struct sockaddr_in peer;
+                socklen_t plen;
+                ssize_t n;
+
+                if (!FD_ISSET(socks[i], &rd))
+                    continue;
+                plen = sizeof(peer);
+                n = recvfrom(socks[i], inbuf, sizeof(inbuf), 0,
+                             (struct sockaddr *)&peer, &plen);
+                if (n < 0)
+                    continue;
+                handle_one(socks[i], inbuf, n, &peer, plen,
+                           routes, nroutes);
+                handled++;
+            }
+            bg = bg_pending();      /* a request may have started it */
+        } while (bg && handled < RPC_BG_BATCH);
+
+        if (bg_pending())
+            g_bg_step();
     }
 }

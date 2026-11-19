@@ -3,7 +3,8 @@
 #   make test       # build + run the handle-table unit test and the
 #                   # direct-RPC tests (no root/mount)
 #   make stress     # LINK churn + 32MB write-integrity stress, and the
-#                   # restart-walk linearity check (20k vs 80k entries)
+#                   # restart-walk linearity check (20k vs 80k entries) and
+#                   # serving-while-walking with retransmits (200k entries)
 
 CC     = gcc
 CFLAGS = -Wall -O2 -D_GNU_SOURCE
@@ -28,6 +29,7 @@ test: gnfsd test-handle
 stress: gnfsd
 	./test-stress.sh
 	./test-rebuild.sh
+	./test-walk.sh
 
 clean:
 	rm -f $(OBJ) gnfsd test-handle

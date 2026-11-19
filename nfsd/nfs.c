@@ -141,25 +141,39 @@ static int put_fattr(xdr_t *o, const struct stat *st)
     return o->err ? -1 : 0;
 }
 
-/* read a 32-byte fh from `in` and resolve; sets *path, or writes a
-   stale-status word to `out` and returns -1. */
+/* read a 32-byte fh from `in` and resolve it. Returns
+     0  *path set;
+     1  a STALE status was written to `out` (the handler replies);
+    -1  only the export walk in progress can resolve it: the handler
+        must return -1 so the request is dropped unanswered. NFSv2 has
+        no "try again later" error (v3's JUKEBOX), and STALE would make
+        the client discard a handle that is fine; its retransmit is
+        answered once the walk has got there.
+   Every handler resolves its handles before it changes anything, so a
+   dropped request has had no effect and its retransmit runs it once. */
 static int arg_fh(xdr_t *in, xdr_t *out, const char **path)
 {
     unsigned char fh[NFS_FHSIZE];
-    const char *p;
 
     if (xdr_get_fixed(in, fh, NFS_FHSIZE) < 0) {
         xdr_put_u32(out, NFSERR_STALE);
-        return -1;
+        return 1;
     }
-    p = fh_to_path(fh);
-    if (p == NULL) {
+    switch (fh_resolve(fh, path)) {
+    case FH_OK:
+        return 0;
+    case FH_WAIT:
+        return -1;
+    default:
         xdr_put_u32(out, NFSERR_STALE);
-        return -1;
+        return 1;
     }
-    *path = p;
-    return 0;
 }
+
+/* resolve the leading fh argument, or leave the handler: reply (stale)
+   or drop (walk still running) */
+#define ARG_FH(in, out, pp) do { int r_ = arg_fh((in), (out), (pp)); \
+        if (r_ != 0) return r_ > 0 ? 0 : -1; } while (0)
 
 /* status + fattr(path) helper */
 static int reply_stat_fattr(xdr_t *out, const char *path)
@@ -259,8 +273,7 @@ static int nfs_getattr(rpc_call_t *c, xdr_t *in, xdr_t *out)
 {
     const char *path;
     (void)c;
-    if (arg_fh(in, out, &path) < 0)
-        return 0;
+    ARG_FH(in, out, &path);
     return reply_stat_fattr(out, path);
 }
 
@@ -270,8 +283,7 @@ static int nfs_setattr(rpc_call_t *c, xdr_t *in, xdr_t *out)
     uint32_t mode, uid, gid, size;
     uint32_t asec, ausec, msec, musec;
     (void)c;
-    if (arg_fh(in, out, &path) < 0)
-        return 0;
+    ARG_FH(in, out, &path);
     if (xdr_get_u32(in, &mode) < 0 || xdr_get_u32(in, &uid) < 0 ||
         xdr_get_u32(in, &gid) < 0 || xdr_get_u32(in, &size) < 0 ||
         xdr_get_u32(in, &asec) < 0 || xdr_get_u32(in, &ausec) < 0 ||
@@ -297,8 +309,7 @@ static int nfs_lookup(rpc_call_t *c, xdr_t *in, xdr_t *out)
     unsigned char fh[NFS_FHSIZE];
     struct stat st;
     (void)c;
-    if (arg_fh(in, out, &dir) < 0)
-        return 0;
+    ARG_FH(in, out, &dir);
     if (xdr_get_string(in, name, sizeof(name)) < 0)
         return -1;
     if (join_child(dir, name, child, sizeof(child)) < 0) {
@@ -327,8 +338,7 @@ static int nfs_read(rpc_call_t *c, xdr_t *in, xdr_t *out)
     int fd;
     ssize_t got;
     (void)c; (void)total;
-    if (arg_fh(in, out, &path) < 0)
-        return 0;
+    ARG_FH(in, out, &path);
     if (xdr_get_u32(in, &offset) < 0 || xdr_get_u32(in, &count) < 0 ||
         xdr_get_u32(in, &total) < 0)
         return -1;
@@ -363,8 +373,7 @@ static int nfs_write(rpc_call_t *c, xdr_t *in, xdr_t *out)
     int fd;
     ssize_t put;
     (void)c; (void)begin; (void)total;
-    if (arg_fh(in, out, &path) < 0)
-        return 0;
+    ARG_FH(in, out, &path);
     if (xdr_get_u32(in, &begin) < 0 || xdr_get_u32(in, &offset) < 0 ||
         xdr_get_u32(in, &total) < 0)
         return -1;
@@ -398,8 +407,7 @@ static int create_common(xdr_t *in, xdr_t *out, int dir_mode)
     struct stat st;
     int rc;
 
-    if (arg_fh(in, out, &dir) < 0)
-        return 0;
+    ARG_FH(in, out, &dir);
     if (xdr_get_string(in, name, sizeof(name)) < 0)
         return -1;
     if (xdr_get_u32(in, &mode) < 0 || xdr_get_u32(in, &uid) < 0 ||
@@ -452,8 +460,7 @@ static int remove_common(xdr_t *in, xdr_t *out, int is_dir)
     char child[1024];
     int rc;
 
-    if (arg_fh(in, out, &dir) < 0)
-        return 0;
+    ARG_FH(in, out, &dir);
     if (xdr_get_string(in, name, sizeof(name)) < 0)
         return -1;
     if (join_child(dir, name, child, sizeof(child)) < 0) {
@@ -484,15 +491,19 @@ static int nfs_rename(rpc_call_t *c, xdr_t *in, xdr_t *out)
     int rc;
     (void)c;
 
-    if (arg_fh(in, out, &fromdir) < 0)
-        return 0;
+    ARG_FH(in, out, &fromdir);
     if (xdr_get_string(in, fname, sizeof(fname)) < 0)
         return -1;
-    {   /* second fh, resolved into a stable interned pointer */
+    {   /* second fh, resolved into a stable interned pointer; both
+           are resolved before anything changes, so a drop is safe */
         if (xdr_get_fixed(in, fh, NFS_FHSIZE) < 0)
             return -1;
-        tp = fh_to_path(fh);
-        if (tp == NULL) {
+        switch (fh_resolve(fh, &tp)) {
+        case FH_OK:
+            break;
+        case FH_WAIT:
+            return -1;
+        default:
             xdr_put_u32(out, NFSERR_STALE);
             return 0;
         }
@@ -524,14 +535,17 @@ static int nfs_link(rpc_call_t *c, xdr_t *in, xdr_t *out)
     int rc;
     (void)c;
 
-    if (arg_fh(in, out, &from) < 0)
-        return 0;
-    {   /* target directory fh */
+    ARG_FH(in, out, &from);
+    {   /* target directory fh, resolved before the link is made */
         const char *tp;
         if (xdr_get_fixed(in, fh, NFS_FHSIZE) < 0)
             return -1;
-        tp = fh_to_path(fh);
-        if (tp == NULL) {
+        switch (fh_resolve(fh, &tp)) {
+        case FH_OK:
+            break;
+        case FH_WAIT:
+            return -1;
+        default:
             xdr_put_u32(out, NFSERR_STALE);
             return 0;
         }
@@ -560,8 +574,7 @@ static int nfs_readlink(rpc_call_t *c, xdr_t *in, xdr_t *out)
     int n;
 
     (void)c;
-    if (arg_fh(in, out, &path) < 0)
-        return 0;
+    ARG_FH(in, out, &path);
     n = (int)readlink(path, buf, sizeof(buf) - 1);
     if (n < 0) {
         xdr_put_u32(out, errno_to_nfs(errno));
@@ -584,8 +597,7 @@ static int nfs_symlink(rpc_call_t *c, xdr_t *in, xdr_t *out)
     uint32_t mode, uid, gid, size, a1, a2, m1, m2;
 
     (void)c;
-    if (arg_fh(in, out, &dir) < 0)
-        return 0;
+    ARG_FH(in, out, &dir);
     if (xdr_get_string(in, name, sizeof(name)) < 0)
         return -1;
     if (xdr_get_string(in, target, sizeof(target)) < 0)
@@ -626,8 +638,7 @@ static int nfs_readdir(rpc_call_t *c, xdr_t *in, xdr_t *out)
     size_t cap;
     (void)c;
 
-    if (arg_fh(in, out, &path) < 0)
-        return 0;
+    ARG_FH(in, out, &path);
     if (xdr_get_u32(in, &cookie) < 0 || xdr_get_u32(in, &count) < 0)
         return -1;
     d = opendir(path);
@@ -693,8 +704,7 @@ static int nfs_statfs(rpc_call_t *c, xdr_t *in, xdr_t *out)
     const char *path;
     struct statvfs vf;
     (void)c;
-    if (arg_fh(in, out, &path) < 0)
-        return 0;
+    ARG_FH(in, out, &path);
     if (statvfs(path, &vf) < 0) {
         xdr_put_u32(out, errno_to_nfs(errno));
         return 0;

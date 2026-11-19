@@ -80,15 +80,20 @@ def link_churn(port, cycles, fh):
     # DRC retransmit safety: same xid LINK twice -> one link only
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(3)
     msg = mk(999999, NFSP, 2, 12, filefh + fh + s_string("gn_hl_drc"))
-    s.sendto(msg, (HOST, port)); s.recvfrom(65536)
-    s.sendto(msg, (HOST, port)); d, _ = s.recvfrom(65536)  # retransmit
+    s.sendto(msg, (HOST, port)); d1, _ = s.recvfrom(65536)
+    s.sendto(msg, (HOST, port)); d2, _ = s.recvfrom(65536)  # retransmit
     s.close()
     r = one_call(port, NFSP, 2, 1, filefh)          # GETATTR nlink
     nlink = struct.unpack(">I", r[4+8:4+12])[0]
-    print("DRC retransmit: nlink=%d (expect 2 - replay, not re-run)" % nlink)
+    # nlink alone would also be 2 if the retransmit re-ran LINK and got
+    # EXIST; a replay returns the very same (OK) reply
+    st1 = struct.unpack(">I", d1[-4:])[0]
+    same = d1 == d2
+    print("DRC retransmit: nlink=%d, status=%d, replies identical=%s "
+          "(expect 2, 0, True - replay, not re-run)" % (nlink, st1, same))
     one_call(port, NFSP, 2, 10, fh + s_string("gn_hl_drc"))
     one_call(port, NFSP, 2, 10, fh + s_string("gn_stress_base"))
-    return errs == 0 and nlink == 2
+    return errs == 0 and nlink == 2 and st1 == 0 and same
 
 def write_flood(port, mb, fh):
     sattr = struct.pack(">IIIIIIII", 0o644, 0xffffffff, 0xffffffff, 0,

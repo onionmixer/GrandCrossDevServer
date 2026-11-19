@@ -8,11 +8,12 @@
 D="$(cd "$(dirname "$0")" && pwd)"
 cd "$D" || exit 1
 W=$(mktemp -d); mkdir -p "$W/sub"; echo persist-ok > "$W/sub/deep.txt"
+export GN_FHFILE="$W.fh"                  # 핸들 파일도 시험마다 따로
 "$D/gnfsd" -p 12081 -n 12081 "$W" >/dev/null 2>&1 & PID1=$!; sleep 1
 GN_EXPORT=$W python3 test-persist.py 12081 get >/dev/null
 kill "$PID1" 2>/dev/null; sleep 1        # 우리 인스턴스만 종료(재시작 흉내)
 "$D/gnfsd" -p 12081 -n 12081 "$W" >/dev/null 2>&1 & PID2=$!; sleep 1
 OUT=$(GN_EXPORT=$W python3 test-persist.py 12081 use)
-kill "$PID2" 2>/dev/null; rm -rf "$W"    # 우리 인스턴스만 정리
+kill "$PID2" 2>/dev/null; rm -rf "$W" "$GN_FHFILE"    # 우리 인스턴스만 정리
 echo "$OUT" | grep -q "OK(영속화 동작)" && echo "PASS handle survives server restart" || { echo "FAIL handle lost on restart"; exit 1; }
 echo "$OUT" | grep -q "persist-ok" && echo "PASS content readable via old handle" || { echo "FAIL content unreadable"; exit 1; }

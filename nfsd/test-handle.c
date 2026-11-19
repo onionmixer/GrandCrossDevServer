@@ -9,11 +9,15 @@
  * including which entry wins when two share a (hi, lo) hash. A real
  * duplicate key comes from the "/" export alias: "//x" and "/x" have
  * the same relative path "x" but are different interned strings.
- * Allocation failure is injected through malloc/realloc wrappers.
+ * Allocation failure is injected through malloc/realloc wrappers. The
+ * incremental export walk is run over a small real tree in /tmp.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 static long g_allocs;          /* allocations seen                   */
 static long g_fail_at = -1;    /* fail the allocation with this number */
@@ -69,7 +73,10 @@ static void reset(const char *root)
         free(g_paths[i]);
     free(g_paths); free(g_hi); free(g_lo); free(g_slot);
     g_paths = NULL; g_hi = g_lo = NULL; g_slot = NULL;
-    g_count = g_cap = 0; g_nslot = 0; g_rebuilt = 0;
+    g_count = g_cap = 0; g_nslot = 0;
+    while (g_wtop > 0)                 /* a "restart": no walk, no table */
+        closedir(g_wstack[--g_wtop].d);
+    g_walk = WALK_IDLE;
     g_rootlen = 0; g_root[0] = '\0';
     fh_set_root(root);
 }
@@ -234,12 +241,151 @@ static void test_alloc_failure(void)
     printf("  %ld injected failures\n", failed);
 }
 
+/* ---- incremental walk over a real tree ---- */
+
+static char g_tree[64];
+
+static void touch(const char *p)
+{
+    FILE *f = fopen(p, "w");
+    if (f != NULL)
+        fclose(f);
+}
+
+static int open_fds(void)
+{
+    int n = 0;
+    DIR *d = opendir("/proc/self/fd");
+    if (d == NULL)
+        return -1;
+    while (readdir(d) != NULL)
+        n++;
+    closedir(d);
+    return n;
+}
+
+/* tree: 6 dirs x 1000 files, a depth-40 chain, a symlink loop */
+static void make_tree(void)
+{
+    char p[1024];
+    int i, j;
+
+    strcpy(g_tree, "/tmp/gn-th-XXXXXX");
+    if (mkdtemp(g_tree) == NULL) {
+        printf("  cannot create temp tree\n");
+        exit(1);
+    }
+    for (i = 0; i < 6; i++) {
+        sprintf(p, "%s/d%d", g_tree, i);
+        mkdir(p, 0755);
+        for (j = 0; j < 1000; j++) {
+            sprintf(p, "%s/d%d/f%d", g_tree, i, j);
+            touch(p);
+        }
+    }
+    strcpy(p, g_tree);
+    for (i = 1; i <= 40; i++) {        /* entry at depth i is "c" x i */
+        strcat(p, "/c");
+        mkdir(p, 0755);
+    }
+    sprintf(p, "%s/d0/loop", g_tree);
+    if (symlink("..", p) != 0)          /* a loop the walk must not follow */
+        printf("  (no symlink: loop case not covered)\n");
+}
+
+static void chain_path(char *p, int depth)
+{
+    int i;
+    strcpy(p, g_tree);
+    for (i = 0; i < depth; i++)
+        strcat(p, "/c");
+}
+
+static void test_walk(void)
+{
+    unsigned char old5[NFS_FHSIZE], olddeep[NFS_FHSIZE], d33[NFS_FHSIZE],
+                  d34[NFS_FHSIZE], gone[NFS_FHSIZE], fresh[NFS_FHSIZE];
+    char p[1024], q[1024];
+    const char *r;
+    long steps = 0, before, maxstep = 0;
+    int fds;
+
+    printf("incremental walk over a real tree\n");
+    make_tree();
+    /* a previous server lifetime hands out handles ... */
+    reset(g_tree);
+    sprintf(p, "%s/d5/f999", g_tree);  fh_from_path(p, old5);
+    chain_path(q, 30);                  fh_from_path(q, olddeep);
+    chain_path(q, 33);                  fh_from_path(q, d33);
+    chain_path(q, 34);                  fh_from_path(q, d34);
+    sprintf(p, "%s/d1/gone", g_tree);   touch(p); fh_from_path(p, gone);
+    unlink(p);
+    /* ... then it restarts */
+    fds = open_fds();
+    reset(g_tree);
+    CHECK(fh_resolve(old5, &r) == FH_WAIT, "unknown old handle -> WAIT");
+    CHECK(fh_walk_pending(), "walk started by it");
+    CHECK(fh_resolve(old5, &r) == FH_WAIT, "still WAIT before any step");
+    /* a new client mounts meanwhile: new handles resolve at once */
+    sprintf(p, "%s/d2/f7", g_tree);
+    CHECK(fh_from_path(p, fresh) == 0 && fh_resolve(fresh, &r) == FH_OK &&
+          strcmp(r, p) == 0, "new handle resolves during the walk");
+    while (fh_walk_pending()) {
+        before = g_count;
+        fh_walk_step();
+        if (g_count - before > maxstep)
+            maxstep = g_count - before;
+        steps++;
+    }
+    printf("  %ld entries in %ld slices (max %ld per slice)\n",
+           g_count, steps, maxstep);
+    CHECK(steps > 1, "walk took several slices");
+    CHECK(maxstep <= WALK_SLICE_ENTRIES, "slice bounded");
+    CHECK(g_walk == WALK_DONE, "walk done");
+    sprintf(p, "%s/d5/f999", g_tree);
+    CHECK(fh_resolve(old5, &r) == FH_OK && strcmp(r, p) == 0,
+          "old handle resolves after the walk");
+    chain_path(q, 30);
+    CHECK(fh_resolve(olddeep, &r) == FH_OK && strcmp(r, q) == 0,
+          "deep old handle resolves");
+    CHECK(fh_resolve(d33, &r) == FH_OK, "depth 33 reached (as before)");
+    CHECK(fh_resolve(d34, &r) == FH_STALE, "depth 34 not walked (as before)");
+    CHECK(fh_resolve(gone, &r) == FH_STALE, "deleted path -> STALE");
+    CHECK(g_wtop == 0 && open_fds() == fds, "every DIR closed");
+    CHECK(table_consistent(), "index consistent after the walk");
+
+    printf("walk that runs out of memory\n");
+    reset(g_tree);
+    g_allocs = 0;
+    g_fail_at = 3000;                   /* somewhere inside the walk */
+    CHECK(fh_resolve(old5, &r) == FH_WAIT, "WAIT while walking");
+    while (fh_walk_pending())
+        fh_walk_step();
+    g_fail_at = -1;
+    CHECK(g_walk == WALK_FAILED, "walk FAILED, not done");
+    /* whether the partial walk reached it depends on readdir order;
+       what must never happen is a WAIT that no walk will ever end */
+    CHECK(fh_resolve(olddeep, &r) != FH_WAIT, "no WAIT after a failed walk");
+    CHECK(fh_resolve(d34, &r) == FH_STALE, "no second walk");
+    CHECK(g_wtop == 0 && open_fds() == fds, "every DIR closed on failure");
+    CHECK(table_consistent(), "partial table consistent");
+
+    sprintf(p, "rm -rf '%s'", g_tree);
+    if (system(p) != 0)
+        printf("  (could not remove %s)\n", g_tree);
+}
+
 int main(void)
 {
+    /* the walk logs to stderr, including the "walk FAILED" this test
+       provokes on purpose - keep that from reading as a test failure */
+    if (freopen("/dev/null", "w", stderr) == NULL)
+        return 1;
     test_random_paths();
     test_alias_dupkey();
     test_handles();
     test_alloc_failure();
+    test_walk();
     if (g_fail) {
         printf("== %d FAIL ==\n", g_fail);
         return 1;

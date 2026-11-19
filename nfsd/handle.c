@@ -41,7 +41,6 @@ static unsigned long  g_nslot;    /* slot count: 0 or a power of two */
 
 static char  g_root[1024];
 static long  g_rootlen;
-static long  g_rebuilt;           /* 1 once the tree has been walked */
 
 void fh_set_root(const char *root)
 {
@@ -262,65 +261,170 @@ int fh_from_path(const char *path, unsigned char *fh)
     return 0;
 }
 
-/* walk the export once, interning everything, so handles issued by a
-   previous run of the server can be resolved by hash */
-static void rebuild_dir(const char *dir, int depth)
+/* ---- the export walk (re-resolving handles after a restart) --------
+ * The first unknown new-format handle starts a walk of the export that
+ * interns every path, so the handle can be found by its (hi, lo). The
+ * walk is incremental: fh_walk_step() advances it by one bounded slice
+ * and the server loop calls it between requests, so the server keeps
+ * answering while it walks (PLAN_handle_rebuild_fix.md 5.2). It is the
+ * same depth-first order the old recursive walk used: depth > 32,
+ * over-long paths and unreadable directories are skipped, symlinked
+ * directories are not followed, mount points are crossed.
+ *
+ * States: not started -> running -> done | failed. "failed" (the root
+ * cannot be opened, or an allocation failed) is not treated as done:
+ * it is logged, and an old handle the partial table cannot resolve is
+ * answered STALE - retrying would fail the same way. One walk per
+ * server lifetime either way.
+ *
+ * The tree may change while a walk is in progress (it is not a
+ * snapshot): a directory renamed under an open DIR is recorded under
+ * its old path, an old handle not found once the walk ends is STALE,
+ * and new paths are interned by LOOKUP as usual.
+ */
+#define WALK_MAXDEPTH      32
+#define WALK_SLICE_ENTRIES 2000L     /* per slice, and ...           */
+#define WALK_SLICE_USEC    50000L    /* ... a time target, not a cap */
+#define WALK_LOG_EVERY     500000L
+
+enum { WALK_IDLE, WALK_RUNNING, WALK_DONE, WALK_FAILED };
+
+typedef struct {
+    DIR        *d;
+    const char *path;                /* interned: stable pointer */
+    int         depth;
+} walk_frame_t;
+
+static int          g_walk = WALK_IDLE;
+static walk_frame_t g_wstack[WALK_MAXDEPTH + 1];
+static int          g_wtop;          /* frames in use */
+static long         g_wbefore;       /* table size when the walk began */
+static long         g_wnextlog;
+static time_t       g_wt0;
+
+static long usec_since(const struct timespec *t0)
+{
+    struct timespec t;
+
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (long)(t.tv_sec - t0->tv_sec) * 1000000L +
+           (long)(t.tv_nsec - t0->tv_nsec) / 1000L;
+}
+
+static void walk_end(int state, const char *why)
+{
+    while (g_wtop > 0)
+        closedir(g_wstack[--g_wtop].d);
+    g_walk = state;
+    if (state == WALK_DONE)
+        fprintf(stderr, "gnfsd: walk done: %ld new entries (%ld total), "
+                "%lds\n", g_count - g_wbefore, g_count,
+                (long)(time(NULL) - g_wt0));
+    else
+        fprintf(stderr, "gnfsd: walk FAILED (%s) after %ld new entries; "
+                "old handles it did not reach will be answered STALE\n",
+                why, g_count - g_wbefore);
+}
+
+static void walk_start(void)
 {
     DIR *d;
+    long ri;
+
+    g_walk = WALK_RUNNING;
+    g_wbefore = g_count;
+    g_wnextlog = g_count + WALK_LOG_EVERY;
+    g_wt0 = time(NULL);
+    fprintf(stderr, "gnfsd: unknown handle - walking %s to re-resolve "
+            "(still serving meanwhile)...\n", g_root);
+    ri = intern(g_root);
+    if (ri < 0) {
+        walk_end(WALK_FAILED, "out of memory");
+        return;
+    }
+    d = opendir(g_root);
+    if (d == NULL) {
+        walk_end(WALK_FAILED, "cannot open the export root");
+        return;
+    }
+    g_wstack[0].d = d;
+    g_wstack[0].path = g_paths[ri];
+    g_wstack[0].depth = 0;
+    g_wtop = 1;
+}
+
+int fh_walk_pending(void)
+{
+    return g_walk == WALK_RUNNING;
+}
+
+void fh_walk_step(void)
+{
+    struct timespec t0;
+    long n = 0, ci;
+    walk_frame_t *f;
     struct dirent *de;
     char child[1024];
     struct stat st;
+    size_t dl;
 
-    if (depth > 32)
-        return;                       /* runaway guard */
-    d = opendir(dir);
-    if (d == NULL)
+    if (g_walk != WALK_RUNNING)
         return;
-    while ((de = readdir(d)) != NULL) {
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    while (g_wtop > 0) {
+        f = &g_wstack[g_wtop - 1];
+        de = readdir(f->d);
+        if (de == NULL) {             /* directory finished */
+            closedir(f->d);
+            g_wtop--;
+            continue;
+        }
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
             continue;
-        if ((long)(strlen(dir) + strlen(de->d_name) + 2) > (long)sizeof(child))
+        dl = strlen(f->path);
+        if (dl + strlen(de->d_name) + 2 > sizeof(child))
             continue;
-        strcpy(child, dir);
-        if (child[strlen(child) - 1] != '/')
+        strcpy(child, f->path);
+        if (child[dl - 1] != '/')
             strcat(child, "/");
         strcat(child, de->d_name);
-        if (intern(child) < 0)
-            break;
+        ci = intern(child);
+        if (ci < 0) {
+            walk_end(WALK_FAILED, "out of memory");
+            return;
+        }
         /* lstat: never follow a symlink, so link loops cannot trap us */
-        if (lstat(child, &st) == 0 && S_ISDIR(st.st_mode))
-            rebuild_dir(child, depth + 1);
+        if (f->depth < WALK_MAXDEPTH && lstat(child, &st) == 0 &&
+            S_ISDIR(st.st_mode)) {
+            DIR *cd = opendir(child);
+            if (cd != NULL) {         /* depth first, like the recursion */
+                g_wstack[g_wtop].d = cd;
+                g_wstack[g_wtop].path = g_paths[ci];
+                g_wstack[g_wtop].depth = f->depth + 1;
+                g_wtop++;
+            }
+        }
+        if (++n >= WALK_SLICE_ENTRIES)
+            break;
+        if ((n & 63) == 0 && usec_since(&t0) >= WALK_SLICE_USEC)
+            break;
     }
-    closedir(d);
+    if (g_count >= g_wnextlog) {
+        fprintf(stderr, "gnfsd: walk: %ld entries so far, %lds\n",
+                g_count - g_wbefore, (long)(time(NULL) - g_wt0));
+        g_wnextlog = g_count + WALK_LOG_EVERY;
+    }
+    if (g_wtop == 0)
+        walk_end(WALK_DONE, NULL);
 }
 
-static void rebuild(void)
-{
-    long before;
-    time_t t0;
-
-    if (g_rebuilt || g_rootlen == 0)
-        return;
-    g_rebuilt = 1;                    /* one walk per server lifetime */
-    /* the walk blocks the (single-threaded) server; say so, so a busy
-       gnfsd is not mistaken for a hung one */
-    before = g_count;
-    t0 = time(NULL);
-    fprintf(stderr, "gnfsd: unknown handle - walking %s to re-resolve...\n",
-            g_root);
-    intern(g_root);
-    rebuild_dir(g_root, 0);
-    fprintf(stderr, "gnfsd: walk done: %ld new entries (%ld total), %lds\n",
-            g_count - before, g_count, (long)(time(NULL) - t0));
-}
-
-const char *fh_to_path(const unsigned char *fh)
+int fh_resolve(const unsigned char *fh, const char **path)
 {
     unsigned long idx, hi, lo;
     long i;
 
     if (get_be32(fh + 4) != FH_MAGIC)
-        return NULL;
+        return FH_STALE;
     idx = get_be32(fh);
     hi = get_be32(fh + 12);
     lo = get_be32(fh + 16);
@@ -331,20 +435,34 @@ const char *fh_to_path(const unsigned char *fh)
        of an older gnfsd and is checked as before. */
     if (idx < (unsigned long)g_count &&
         get_be32(fh + 8) == (hash_str(g_paths[idx]) & 0xFFFFFFFFUL) &&
-        ((hi == 0 && lo == 0) || (g_hi[idx] == hi && g_lo[idx] == lo)))
-        return g_paths[idx];
+        ((hi == 0 && lo == 0) || (g_hi[idx] == hi && g_lo[idx] == lo))) {
+        *path = g_paths[idx];
+        return FH_OK;
+    }
 
     /* slow path: the table does not have this entry (a restart empties
-       it). Resolve by the path hash the handle carries, walking the
-       export once if we have not already. */
+       it). Resolve by the path hash the handle carries; if it is not
+       known yet, the export walk will find it - or prove it stale. */
     if (hi == 0 && lo == 0)
-        return NULL;                  /* handle from an older gnfsd */
-    for (;;) {
-        i = find_hash(hi, lo);
-        if (i >= 0)
-            return g_paths[i];
-        if (g_rebuilt)
-            return NULL;              /* already walked; genuinely stale */
-        rebuild();
+        return FH_STALE;              /* handle from an older gnfsd */
+    i = find_hash(hi, lo);
+    if (i < 0 && g_walk == WALK_IDLE && g_rootlen > 0) {
+        walk_start();
+        i = find_hash(hi, lo);        /* it may be the root itself */
     }
+    if (i >= 0) {
+        *path = g_paths[i];
+        return FH_OK;
+    }
+    return g_walk == WALK_RUNNING ? FH_WAIT : FH_STALE;
+}
+
+const char *fh_to_path(const unsigned char *fh)
+{
+    const char *p = NULL;
+    int r;
+
+    while ((r = fh_resolve(fh, &p)) == FH_WAIT)
+        fh_walk_step();
+    return r == FH_OK ? p : NULL;
 }

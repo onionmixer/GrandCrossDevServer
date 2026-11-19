@@ -215,6 +215,8 @@ int main(int argc, char **argv)
 
     rpc_set_verbose(verbose);
     fh_set_root(abs);
+    /* the restart walk runs between requests, not instead of them */
+    rpc_set_background(fh_walk_pending, fh_walk_step);
     svc_config(abs, nfs_port);
     {
         struct passwd *pw = getpwuid(geteuid());
