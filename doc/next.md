@@ -87,7 +87,7 @@ ioctl을 쓰기 때문. `ser_next.c`가 `TIOCGETP`/`TIOCSETP` +
 ## 검증 결과 (실기, Linux gcds ↔ OPENSTEP gcdsd)
 
 전부 통과:
-- greeting `GCDS 1 posix <host> LIVE INTERACTIVE`, ping/stat
+- greeting `GCDS 1 openstep-<arch> <host> LIVE INTERACTIVE`(PLAN_07 이전 빌드는 `posix`), ping/stat
 - **네이티브 NeXT cc 원격 컴파일·실행**, exit code, stdout/stderr 분리
 - **스트리밍 RUN**(완료 전 출력 도착), **LIVE 제어세션**(실행 중
   ping/`busy`), **RUNI**(stdin sort), **K→exit 143**(프로세스 그룹

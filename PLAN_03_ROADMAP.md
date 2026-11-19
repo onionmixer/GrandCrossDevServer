@@ -50,8 +50,11 @@
 - 자작 NFSv2 서버(gnfsd): ONC RPC/XDR + MOUNT + NFS v2 **실사용
   프로시저 전부**(LINK/READLINK/SYMLINK 포함, **READDIR은 RFC 1094
   `count` 준수**), DRC, sub-second mtime, 권한 정규화, **재시작을 넘기는
-  파일 핸들**, root 기동 시 수신버퍼 8MB(SO_RCVBUFFORCE). OPENSTEP 실기
-  검증(대형 디렉터리 열거·13,516파일 walk) + 스트레스(`make stress`) 통과.
+  파일 핸들**(재구축은 해시 색인으로 항목 수에 직선이고 훑는 동안에도
+  응답 — 579만 항목 export에서 약 20초, 그 사이 새 마운트 0.87초,
+  nfsd/PLAN_handle_rebuild_fix.md), root 기동 시 수신버퍼 8MB(SO_RCVBUFFORCE).
+  OPENSTEP 실기 검증(대형 디렉터리 열거·13,516파일 walk) + 스트레스
+  (`make stress`) 통과.
 - dist/ 배포 바이너리 6/6(복사→실행, git 추적) + win32/dos 크로스
   툴체인 편입(PLAN_06).
 - gcdslog: 시리얼 콘솔 커널 패닉 캡처 도구(tools/gcdslog.c, Linux 호스트

@@ -72,7 +72,7 @@ echo $?                                # 원격 exit code가 그대로
 | Linux | `dist/linux/gcdsd` | `./gcdsd` |
 | macOS | `dist/macos/gcdsd` | `./gcdsd` |
 | Haiku/BeOS | `dist/haiku/gcdsd` | `./gcdsd` |
-| NeXTSTEP | `dist/next/gcdsd` | `./gcdsd` |
+| NeXTSTEP/OPENSTEP | `dist/next/<arch>/gcdsd` (i386·m68k·sparc) + `dist/next/gcdsd.cnf` | `./gcdsd` |
 | Windows | `dist/win32/gcdsd.exe` | `gcdsd.exe` |
 | MS-DOS(시리얼) | `dist/dos/gcdsd-serial.exe` | `gcdsd-serial.exe` |
 | MS-DOS(TCP) | `dist/dos/gcdsd-tcp.exe` | `gcdsd-tcp.exe` |
@@ -268,7 +268,9 @@ sudo ./nfsd/serve.sh <공유폴더>          # portmap 111 + nfs 2049
     즉시 반영이 필요할 때만(요청량이 늘어 빌드 중엔 불리)
   - `/next-mount.csh -u` — 언마운트
 - gnfsd를 재시작해도 **재마운트할 필요가 없다**(파일 핸들이 재시작을
-  넘긴다).
+  넘긴다). 재시작 뒤 첫 옛-핸들 접근 때 export를 한 번 훑는데(항목 수에
+  직선, 579만 항목 약 20초), 그동안에도 새 마운트·다른 요청엔 바로 답한다.
+  훑기가 끝나야 풀리는 요청만 클라이언트의 재전송을 기다린다.
 - umount이 `Device busy`로 막히면(붙드는 프로세스 없음) 클라이언트 커널
   문제다 — 재부팅 말고 **다른 마운트포인트에 다시 마운트**하면 된다
   (`next-mount.csh`가 자동 폴백). 옵션의 의미는 doc/next.md의 표,
@@ -294,7 +296,9 @@ make -f make/Makefile.next               # NeXTSTEP (대상에서, gcdsd만)
   ```
   자세한 건 [doc/toolchain.md](doc/toolchain.md).
 - 배포 트리로 한 번에 회수: `./dist/harvest.sh [platform ...]`
-  (원격/툴체인이 없는 플랫폼은 SKIP).
+  (원격/툴체인이 없는 플랫폼은 SKIP). OPENSTEP은 `next`(타깃의 자기
+  아키텍처)·`next:<arch>`·`next:all` — gnfsd가 떠 있어야 하고 telnet으로
+  빌드한다(doc/next.md "수집").
 
 회귀 테스트:
 ```sh

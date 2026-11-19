@@ -30,12 +30,14 @@ GrandCrossDevServer의 공유 스토리지 계층(README 전제 3) — 원격
   결과와 무관하게 2049로 보내기** 때문(§실전 참고). 단일 스레드,
   select 다중 소켓.
 - **중복요청 캐시(DRC)**: UDP 재전송으로 비멱등 연산(CREATE/REMOVE/
-  RENAME/MKDIR/RMDIR/WRITE/SETATTR)이 두 번 실행되는 것을 방지 —
+  RENAME/LINK/SYMLINK/MKDIR/RMDIR/WRITE/SETATTR)이 두 번 실행되는 것을 방지 —
   최근 `(클라이언트 endpoint, xid) → 응답`을 캐시(256슬롯/30초)해
   재전송이면 그대로 재생. 멱등 연산(READ/GETATTR 등)은 캐시 안 함.
 - **sub-second mtime**: fattr에 usec까지 보고해 같은-초 파일 변경도
   클라이언트가 감지.
-- 파일 핸들 32바이트 = 경로 테이블 인덱스 + 매직 + 검증자.
+- 파일 핸들 32바이트 = 경로 테이블 인덱스 + 매직 + 검증자 + export 기준
+  상대경로의 64비트 해시(재시작을 넘기는 데 씀, 아래 "파일 핸들은 서버
+  재시작을 넘긴다"). 경로 표는 해시 색인으로 찾는다.
 - **권한: 단일 uid로 정규화(squash)**. 특권 포트(111) 바인딩 후에는
   root가 불필요하므로, 바인딩 직후 **일반 uid/gid로 영구히 권한을
   떨어뜨린다**(기본: export 디렉토리 소유자, `-u`로 지정). 그래서

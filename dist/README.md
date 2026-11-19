@@ -17,7 +17,7 @@
 | 플랫폼 | 바이너리 | 채널 | 빌드 출처(툴체인) | 수집 | 비고 |
 |--------|----------|------|-------------------|:----:|------|
 | linux  | gcds, gcdsd, gnfsd, gcdslog | TCP·시리얼 | 네이티브 gcc | ✅ | 호스트 클라이언트 + 로컬 데몬/NFS + 패닉 캡처 (ELF x86-64) |
-| next   | gcdsd (+next-mount.csh) | TCP·시리얼 | 네이티브 NeXT cc 2.7 | ✅ | OPENSTEP, Mach-O i486. sgtty 시리얼 |
+| next   | `<arch>/gcdsd` ×3 (+gcdsd.cnf, next-mount.csh) | TCP·시리얼 | NeXT cc 2.7: i386·m68k 네이티브, sparc는 i386에서 cross | ✅ | OPENSTEP, Mach-O i386/m68k/sparc(ostag `openstep-<arch>`). sgtty 시리얼. sparc는 실기 실행 미검증 |
 | macos  | gcdsd | TCP·시리얼 | 네이티브 clang | ✅ | Mach-O x86_64. 한글 NFD→NFC 실기 확인 |
 | haiku  | gcdsd | TCP·시리얼 | 네이티브 gcc 2.95.3 | ✅ | BeOS=Haiku, ELF i386 (hrev53755) |
 | win32  | gcdsd.exe | TCP·COM | 크로스 llvm-mingw(i686) | ✅ | PE32 i386. wine 기동 확인(LIVE INTERACTIVE) |
@@ -37,6 +37,8 @@ win32/dos는 Linux 호스트에서 크로스컴파일한다(wine/DOSBox는 실�
 
 > 바이너리 출처 구분: **네이티브**(next/macos/haiku)는 대상 OS에서
 > 직접 컴파일, **크로스**(win32/dos)는 Linux 호스트에서 크로스컴파일.
+> next/sparc만 예외로 OPENSTEP i386의 NeXT 다중 아키텍처 cc로 만든다
+> (같은 방식의 m68k cross가 네이티브와 바이트 단위로 같았다).
 > macOS 바이너리는 빌드한 macOS 버전·아키에 종속된다.
 
 ## 재수집 (harvest)
@@ -44,3 +46,7 @@ win32/dos는 Linux 호스트에서 크로스컴파일한다(wine/DOSBox는 실�
 회수한다. 툴체인/대상 머신이 없으면 해당 플랫폼만 `SKIP`하고 나머지는
 계속한다. 셋업에 따라 **Haiku와 NeXTSTEP이 동일 물리머신**일 수 있고
 (한 번에 한 OS만 부팅) — 한쪽 수집 후 재부팅해 다른 쪽을 수집한다.
+OPENSTEP은 아키텍처별로 `next`·`next:<arch>`·`next:all`을 받는다.
+`NEXT_HOST_<arch>`가 있으면 그 머신에서 네이티브로, 없으면 `NEXT_HOST`가
+`cc -arch`로 cross-build하며, Mach-O cputype·ostag가 맞는 것만
+`next/<arch>/`에 넣는다(doc/next.md "수집").
