@@ -30,5 +30,7 @@ dist/next/
   동작한다(PLAN_07).
 - `next-mount.csh`: Linux gnfsd 공유를 OPENSTEP에 NFS mount하는 csh 헬퍼.
   상세 `doc/next.md`.
-- 빌드 출처: 각 아키텍처에서 네이티브 cc (`make -f make/Makefile.next`).
-  i386은 gcc 2.7.2.1.
+- 빌드 출처: `make -f make/Makefile.next`(cc = gcc 2.7.2.1). i386·m68k는 각
+  실기에서 네이티브, sparc는 i386에서 `cc -arch sparc` cross-build.
+- 다시 수집: `./dist/harvest.sh next:all`(또는 `next`, `next:<arch>`) — 상세
+  `doc/next.md`의 "수집(harvest)".

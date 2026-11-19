@@ -6,16 +6,16 @@ OPENSTEP/NeXTSTEP용 `gcdsd`를 현행 **i386** 외에 **m68k**(NeXT 흑箱,
 **사용자 결정**
 - *mach 버전* = **m68k NeXT 흑箱 하드웨어**(Motorola 68040, 빅엔디안).
 - 빌드 전략 = **아키텍처별 네이티브 빌드**(각 머신/에뮬에서 `cc`, fat
-  바이너리 아님). *단 sparc는 하드웨어가 없어, .18(i386)의 NeXT
+  바이너리 아님). *단 sparc는 하드웨어가 없어, i386 실기의 NeXT
   다중아키텍처 툴체인으로 `cc -arch sparc` cross-build함(2026-09-15 발견).*
 
-> 상태: **Phase 1(m68k) 완료(2026-09-14).** Phase 0(리팩터·os_tag·문서,
+> 상태: **Phase 0–3 완료(Phase 3 harvest 자동화 2026-11-19), sparc 런타임 검증만 남음.** Phase 0(리팩터·os_tag·문서,
 > 호스트 회귀 46/46) + **Phase 1: m68k 실기 빌드·검증 완료** — NeXTstation
 > (68040)에서 gnfsd NFS로 소스 전달, 네이티브
 > cc(gcc 2.7.2.1)로 빌드(Mach-O m68k), `gcds --ping`→`openstep-m68k`, 원격
 > RUN·exit code·**네이티브 cc 컴파일 roundtrip**까지 통과. **엔디안-클린
 > 전제가 빅엔디안 실기로 증명됨.** `dist/next/m68k/gcdsd` 수집. **i386 재빌드 완료(2026-09-15)** —
-> `dist/next/i386/gcdsd`가 `openstep-i386` 보고(실기 .18). **sparc는 .18의
+> `dist/next/i386/gcdsd`가 `openstep-i386` 보고(실기). **sparc는 i386 실기의
 > NeXT 다중아키텍처 툴체인(`cc -arch sparc`)으로 cross-build 완료** —
 > Mach-O SPARC(cputype 14)/`openstep-sparc`, `dist/next/sparc/gcdsd`.
 > **단 sparc 실기 런타임 검증은 미완**(HW 없음; 엔디안 정합성은 m68k로 대리
@@ -138,7 +138,7 @@ dist/next/
 |------|-----------|------|
 | i386 | 실기(i386 OPENSTEP 머신) | ✓ 보유 |
 | m68k | **Previous 에뮬레이터**(NeXT 68040 정밀 에뮬, NeXTSTEP/OPENSTEP 구동) | ROM·설치미디어 확보 필요 |
-| sparc | **빌드: i386(.18) cross(`cc -arch sparc`) 완료**. 런타임: NeXTSTEP/OPENSTEP sparc 실기(에뮬 빈약) 필요 |
+| sparc | **빌드: i386 cross(`cc -arch sparc`) 완료**. 런타임: NeXTSTEP/OPENSTEP sparc 실기(에뮬 빈약) 필요 |
 
 - m68k는 Previous로 현실적. sparc는 하드웨어 확보 전까지 **조건부 연기**하되,
   엔디안은 m68k로 입증되므로 sparc 고유(cc·디바이스·시리얼) 검증만 남김.
@@ -177,13 +177,18 @@ dist/next/
   - `gcds --ping`→`openstep-m68k`, RUN/exit/네이티브 cc roundtrip 통과.
   - `dist/next/m68k/gcdsd` 수집. **엔디안-클린 전제 빅엔디안 실증 완료.**
 - **Phase 2 — sparc**
-  - **빌드 ✅ 완료(2026-09-15)**: .18(i386)의 NeXT 다중아키텍처 cc로
+  - **빌드 ✅ 완료(2026-09-15)**: i386 실기의 NeXT 다중아키텍처 cc로
     `make ... CC='cc -arch sparc'` → Mach-O SPARC(`openstep-sparc`).
     별도 sparc 하드웨어 불필요(cross). `dist/next/sparc/gcdsd` 수집.
   - **런타임 검증 ⏳ 남음**: sparc 실기/에뮬 확보 시 실행·`--ping`·RUN.
     (엔디안 정합성은 m68k 빅엔디안 실기로 대리 입증.)
-- **Phase 3 — 마무리**
-  - `harvest` arch 자동화(§8), 문서 확정(§9), 로드맵·HANDOFF 갱신.
+- **Phase 3 — 마무리 ✅ 완료(2026-11-19)**
+  - `harvest` arch 자동화(§8): `harvest.sh next|next:<arch>|next:all`. telnet(expect)
+    + 실행 중인 gnfsd export로 소스 전달·빌드·회수, Mach-O cputype·ostag 확인 후에만
+    `dist/next/<arch>/`에 배치(혼입 방지). 실기 i386 네이티브·sparc cross 수집이
+    기존 dist 바이너리와 바이트 단위로 같았고, i386에서 cross한 m68k도 NeXTstation
+    네이티브 빌드와 바이트 단위로 같았다.
+  - 문서 확정(§9), 로드맵·HANDOFF 갱신.
 
 ## 11. 리스크 / 미해결
 

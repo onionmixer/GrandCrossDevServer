@@ -20,13 +20,24 @@ greeting ostag가 아키텍처를 자동 보고한다(`openstep-i386`/`-m68k`/`-
 /`-hppa`). cc 프리디파인드 매크로(`__i386__` 등)로 판별하므로 Makefile
 변경이 필요 없다.
 
-**Cross-build**: NeXT 다중 아키텍처 툴체인이 깔린 머신(예: i386 .18에
+**Cross-build**: NeXT 다중 아키텍처 툴체인이 깔린 머신(예: i386 실기에
 `/lib/{i386,m68k,sparc}/specs` 존재)에서는 `cc -arch <arch>`로 다른
 아키텍처 바이너리를 만든다. sparc gcdsd는 이 방식으로 i386에서
 cross-build했다: `make -f make/Makefile.next CC='cc -arch sparc'` →
 Mach-O SPARC(cputype 14), ostag `openstep-sparc`. **컴파일·링크는 성공하고
 엔디안 정합성은 m68k(빅엔디안) 실기 검증으로 대리 입증되나, sparc 실기에서
 실행 검증은 아직 못 했다**(하드웨어 확보 시).
+같은 i386 머신에서 `cc -arch m68k`로 만든 m68k gcdsd는 NeXTstation 실기에서
+네이티브로 빌드한 것과 **바이트 단위로 같았다**(2026-11-19) — cross 툴체인이
+네이티브와 같은 결과를 낸다는 증거라, sparc cross 바이너리의 신뢰 근거가 된다.
+
+**수집(harvest)**: `./dist/harvest.sh next`(타깃의 자기 아키텍처),
+`next:<arch>`(i386/m68k/sparc), `next:all`. telnet(expect)으로 로그인해
+**지금 떠 있는 gnfsd의 export**에 소스를 넣고 빌드한 뒤, 같은 공유에서
+바이너리를 집어 Mach-O cputype과 ostag가 맞을 때만 `dist/next/<arch>/`에
+둔다. `NEXT_HOST_<arch>`를 주면 그 머신에서 네이티브로, 없으면 `NEXT_HOST`가
+`cc -arch`로 cross-build한다. 타깃에 export가 마운트돼 있지 않으면
+`NEXT_MOUNT`(기본 `/nfstest`)에 마운트한다.
 
 ## 빌드
 

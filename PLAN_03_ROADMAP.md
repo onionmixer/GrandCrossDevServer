@@ -35,9 +35,10 @@
   시리얼 포함 전 기능 통과, INTERACTIVE 실기 확정**. gnext.h shim,
   ser_next.c(sgtty). 소스는 gnfsd NFS 공유로 전달.
   **다중 아키텍처(PLAN_07): i386·m68k 실기 빌드·검증 완료**(각각
-  `openstep-i386`/`openstep-m68k`). **sparc는 i386(.18)의 NeXT 다중아키텍처
+  `openstep-i386`/`openstep-m68k`). **sparc는 i386 실기의 NeXT 다중아키텍처
   `cc -arch sparc`로 cross-build 완료**(Mach-O SPARC/`openstep-sparc`), 단
   sparc 실기 런타임 검증만 미완. GCDSP 텍스트 프로토콜이라 빅엔디안 무수정 동작.
+  수집은 `dist/harvest.sh next|next:<arch>|next:all`로 자동화(telnet+gnfsd).
 
 **대화형 버퍼링 실측** (PLAN_04 §5)
 - 전송 계층은 실시간(첫 줄 +0.1s). 지연이 보이는 경우는 **자식
@@ -59,7 +60,8 @@
 ## 잔여 작업
 - [ ] **OPENSTEP 다중 아키텍처**(PLAN_07): i386·m68k 완료, **sparc는
       cross-build 완료(런타임 검증만 남음)**. 세 dist 바이너리 모두 존재·
-      ostag 정확. **남은 것: sparc 실기/에뮬에서 실행 검증**(하드웨어 확보 시).
+      ostag 정확, harvest arch별 자동화 완료. **남은 것: sparc 실기/에뮬에서
+      실행 검증**(하드웨어 확보 시).
 - [ ] (선택) rexec 어댑터, `gcds --all` 병렬, 고전 Mac OS/OS2/AmigaOS
       시리얼 우선 이식, 시리얼 프레임 CRC 확장(capability `CRC`).
 
